@@ -1,0 +1,14 @@
+.DS_Store
+
+# Xcode and SwiftPM build output.
+build/
+DerivedData/
+.build/
+.swiftpm/
+xcuserdata/
+*.xcuserstate
+
+# Anything built to hand out.
+*.ipa
+*.dSYM.zip
+*.xcarchive
