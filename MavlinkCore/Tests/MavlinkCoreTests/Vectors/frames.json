@@ -1,0 +1,994 @@
+{
+ "pymavlink": "2.4.49",
+ "vectors": [
+  {
+   "name": "HEARTBEAT",
+   "id": 0,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "custom_mode": "639571985",
+    "type": "34",
+    "autopilot": "51",
+    "base_mode": "68",
+    "system_status": "85",
+    "mavlink_version": "3"
+   },
+   "v2": "fd09000000072a00000011181f2622334455033fe5",
+   "v2_signed": "fd09010000072a00000011181f262233445503d81d0315cd5b070000cc1e2b20d7b3",
+   "fields_trimmed": {
+    "custom_mode": "1128019246",
+    "type": "63",
+    "autopilot": "80",
+    "base_mode": "0",
+    "system_status": "0",
+    "mavlink_version": "3"
+   },
+   "v2_trimmed": "fd09000000072a0000002e353c433f50000003fcb1",
+   "fields_v1": {
+    "type": "34",
+    "autopilot": "51",
+    "base_mode": "68",
+    "custom_mode": "639571985",
+    "system_status": "85",
+    "mavlink_version": "3"
+   },
+   "v1": "fe0900072a0011181f262233445503f6ec"
+  },
+  {
+   "name": "SYS_STATUS",
+   "id": 1,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "onboard_control_sensors_present": "639571985",
+    "onboard_control_sensors_enabled": "925903138",
+    "onboard_control_sensors_health": "1212234291",
+    "load": "19268",
+    "voltage_battery": "23637",
+    "current_battery": "28006",
+    "drop_rate_comm": "32375",
+    "errors_comm": "36744",
+    "errors_count1": "41113",
+    "errors_count2": "45482",
+    "errors_count3": "49851",
+    "errors_count4": "54220",
+    "battery_remaining": "-35"
+   },
+   "v2": "fd1f000000072a01000011181f2622293037333a4148444b555c666d777e888f99a0aab1bbc2ccd3dd33d5",
+   "v2_signed": "fd1f010000072a01000011181f2622293037333a4148444b555c666d777e888f99a0aab1bbc2ccd3dd09db0315cd5b070000f2e571c4771c",
+   "fields_trimmed": {
+    "onboard_control_sensors_present": "1128019246",
+    "onboard_control_sensors_enabled": "1414350399",
+    "onboard_control_sensors_health": "1700681552",
+    "load": "26721",
+    "voltage_battery": "31090",
+    "current_battery": "-30077",
+    "drop_rate_comm": "0",
+    "errors_comm": "0",
+    "errors_count1": "0",
+    "errors_count2": "0",
+    "errors_count3": "0",
+    "errors_count4": "0",
+    "battery_remaining": "0"
+   },
+   "v2_trimmed": "fd12000000072a0100002e353c433f464d5450575e6561687279838a9c8e",
+   "fields_v1": {
+    "onboard_control_sensors_present": "639571985",
+    "onboard_control_sensors_enabled": "925903138",
+    "onboard_control_sensors_health": "1212234291",
+    "load": "19268",
+    "voltage_battery": "23637",
+    "current_battery": "28006",
+    "battery_remaining": "-35",
+    "drop_rate_comm": "32375",
+    "errors_comm": "36744",
+    "errors_count1": "41113",
+    "errors_count2": "45482",
+    "errors_count3": "49851",
+    "errors_count4": "54220"
+   },
+   "v1": "fe1f00072a0111181f2622293037333a4148444b555c666d777e888f99a0aab1bbc2ccd3dd6b42"
+  },
+  {
+   "name": "GPS_RAW_INT",
+   "id": 24,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "time_usec": "4772465598646917137",
+    "lat": "925903138",
+    "lon": "1212234291",
+    "alt": "1498565444",
+    "eph": "23637",
+    "epv": "28006",
+    "vel": "32375",
+    "cog": "36744",
+    "fix_type": "153",
+    "satellites_visible": "170",
+    "alt_ellipsoid": "-792083781",
+    "h_acc": "3789214668",
+    "v_acc": "4075545821",
+    "vel_acc": "66909678",
+    "hdg_acc": "336398079",
+    "yaw": "5904"
+   },
+   "v2": "fd34000000072a18000011181f262d343b4222293037333a4148444b5259555c666d777e888f99aabbc2c9d0ccd3dae1dde4ebf2eef5fc03ff060d1410175a4a",
+   "v2_signed": "fd34010000072a18000011181f262d343b4222293037333a4148444b5259555c666d777e888f99aabbc2c9d0ccd3dae1dde4ebf2eef5fc03ff060d141017e63d0315cd5b0700005e79ac5122d8",
+   "fields_trimmed": {
+    "time_usec": "6870330610951140654",
+    "lat": "1414350399",
+    "lon": "1700681552",
+    "alt": "1987012705",
+    "eph": "31090",
+    "epv": "35459",
+    "vel": "39828",
+    "cog": "44197",
+    "fix_type": "0",
+    "satellites_visible": "0",
+    "alt_ellipsoid": "0",
+    "h_acc": "0",
+    "v_acc": "0",
+    "vel_acc": "0",
+    "hdg_acc": "0",
+    "yaw": "0"
+   },
+   "v2_trimmed": "fd1c000000072a1800002e353c434a51585f3f464d5450575e6561686f767279838a949ba5acd517",
+   "fields_v1": {
+    "time_usec": "4772465598646917137",
+    "fix_type": "153",
+    "lat": "925903138",
+    "lon": "1212234291",
+    "alt": "1498565444",
+    "eph": "23637",
+    "epv": "28006",
+    "vel": "32375",
+    "cog": "36744",
+    "satellites_visible": "170"
+   },
+   "v1": "fe1e00072a1811181f262d343b4222293037333a4148444b5259555c666d777e888f99aa6e35"
+  },
+  {
+   "name": "SCALED_PRESSURE",
+   "id": 29,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "time_boot_ms": "639571985",
+    "press_abs": "-1137.25",
+    "press_diff": "-1040.0",
+    "temperature": "19268",
+    "temperature_press_diff": "23637"
+   },
+   "v2": "fd10000000072a1d000011181f2600288ec4000082c4444b555c2f89",
+   "v2_signed": "fd10010000072a1d000011181f2600288ec4000082c4444b555c548d0315cd5b070000a1982aeeb2fe",
+   "fields_trimmed": {
+    "time_boot_ms": "1128019246",
+    "press_abs": "-1136.75",
+    "press_diff": "0.0",
+    "temperature": "0",
+    "temperature_press_diff": "0"
+   },
+   "v2_trimmed": "fd08000000072a1d00002e353c4300188ec4cebf",
+   "fields_v1": {
+    "time_boot_ms": "639571985",
+    "press_abs": "-1137.25",
+    "press_diff": "-1040.0",
+    "temperature": "19268"
+   },
+   "v1": "fe0e00072a1d11181f2600288ec4000082c4444be0b9"
+  },
+  {
+   "name": "ATTITUDE",
+   "id": 30,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "time_boot_ms": "639571985",
+    "roll": "-1137.25",
+    "pitch": "-1040.0",
+    "yaw": "-942.75",
+    "rollspeed": "-845.5",
+    "pitchspeed": "-748.25",
+    "yawspeed": "-651.0"
+   },
+   "v2": "fd1c000000072a1e000011181f2600288ec4000082c400b06bc4006053c400103bc400c022c4f8aa",
+   "v2_signed": "fd1c010000072a1e000011181f2600288ec4000082c400b06bc4006053c400103bc400c022c4a7100315cd5b0700001757256e59c3",
+   "fields_trimmed": {
+    "time_boot_ms": "1128019246",
+    "roll": "-1136.75",
+    "pitch": "-1039.5",
+    "yaw": "0.0",
+    "rollspeed": "0.0",
+    "pitchspeed": "0.0",
+    "yawspeed": "0.0"
+   },
+   "v2_trimmed": "fd0c000000072a1e00002e353c4300188ec400f081c43aab",
+   "fields_v1": {
+    "time_boot_ms": "639571985",
+    "roll": "-1137.25",
+    "pitch": "-1040.0",
+    "yaw": "-942.75",
+    "rollspeed": "-845.5",
+    "pitchspeed": "-748.25",
+    "yawspeed": "-651.0"
+   },
+   "v1": "fe1c00072a1e11181f2600288ec4000082c400b06bc4006053c400103bc400c022c41e46"
+  },
+  {
+   "name": "GLOBAL_POSITION_INT",
+   "id": 33,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "time_boot_ms": "639571985",
+    "lat": "925903138",
+    "lon": "1212234291",
+    "alt": "1498565444",
+    "relative_alt": "1784896597",
+    "vx": "28006",
+    "vy": "32375",
+    "vz": "-28792",
+    "hdg": "41113"
+   },
+   "v2": "fd1c000000072a21000011181f2622293037333a4148444b5259555c636a666d777e888f99a0305d",
+   "v2_signed": "fd1c010000072a21000011181f2622293037333a4148444b5259555c636a666d777e888f99a06fe70315cd5b07000057cbb1ccc855",
+   "fields_trimmed": {
+    "time_boot_ms": "1128019246",
+    "lat": "1414350399",
+    "lon": "1700681552",
+    "alt": "1987012705",
+    "relative_alt": "0",
+    "vx": "0",
+    "vy": "0",
+    "vz": "0",
+    "hdg": "0"
+   },
+   "v2_trimmed": "fd10000000072a2100002e353c433f464d5450575e6561686f764d4b",
+   "fields_v1": {
+    "time_boot_ms": "639571985",
+    "lat": "925903138",
+    "lon": "1212234291",
+    "alt": "1498565444",
+    "relative_alt": "1784896597",
+    "vx": "28006",
+    "vy": "32375",
+    "vz": "-28792",
+    "hdg": "41113"
+   },
+   "v1": "fe1c00072a2111181f2622293037333a4148444b5259555c636a666d777e888f99a05540"
+  },
+  {
+   "name": "RC_CHANNELS",
+   "id": 65,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "time_boot_ms": "639571985",
+    "chan1_raw": "10530",
+    "chan2_raw": "14899",
+    "chan3_raw": "19268",
+    "chan4_raw": "23637",
+    "chan5_raw": "28006",
+    "chan6_raw": "32375",
+    "chan7_raw": "36744",
+    "chan8_raw": "41113",
+    "chan9_raw": "45482",
+    "chan10_raw": "49851",
+    "chan11_raw": "54220",
+    "chan12_raw": "58589",
+    "chan13_raw": "62958",
+    "chan14_raw": "1791",
+    "chan15_raw": "5904",
+    "chan16_raw": "10273",
+    "chan17_raw": "14642",
+    "chan18_raw": "19011",
+    "chancount": "84",
+    "rssi": "101"
+   },
+   "v2": "fd2a000000072a41000011181f262229333a444b555c666d777e888f99a0aab1bbc2ccd3dde4eef5ff06101721283239434a54659208",
+   "v2_signed": "fd2a010000072a41000011181f262229333a444b555c666d777e888f99a0aab1bbc2ccd3dde4eef5ff06101721283239434a54652e0d0315cd5b0700006b681b0430de",
+   "fields_trimmed": {
+    "time_boot_ms": "1128019246",
+    "chan1_raw": "17983",
+    "chan2_raw": "22352",
+    "chan3_raw": "26721",
+    "chan4_raw": "31090",
+    "chan5_raw": "35459",
+    "chan6_raw": "39828",
+    "chan7_raw": "44197",
+    "chan8_raw": "48566",
+    "chan9_raw": "52935",
+    "chan10_raw": "0",
+    "chan11_raw": "0",
+    "chan12_raw": "0",
+    "chan13_raw": "0",
+    "chan14_raw": "0",
+    "chan15_raw": "0",
+    "chan16_raw": "0",
+    "chan17_raw": "0",
+    "chan18_raw": "0",
+    "chancount": "0",
+    "rssi": "0"
+   },
+   "v2_trimmed": "fd16000000072a4100002e353c433f46505761687279838a949ba5acb6bdc7cefb12",
+   "fields_v1": {
+    "time_boot_ms": "639571985",
+    "chancount": "84",
+    "chan1_raw": "10530",
+    "chan2_raw": "14899",
+    "chan3_raw": "19268",
+    "chan4_raw": "23637",
+    "chan5_raw": "28006",
+    "chan6_raw": "32375",
+    "chan7_raw": "36744",
+    "chan8_raw": "41113",
+    "chan9_raw": "45482",
+    "chan10_raw": "49851",
+    "chan11_raw": "54220",
+    "chan12_raw": "58589",
+    "chan13_raw": "62958",
+    "chan14_raw": "1791",
+    "chan15_raw": "5904",
+    "chan16_raw": "10273",
+    "chan17_raw": "14642",
+    "chan18_raw": "19011",
+    "rssi": "101"
+   },
+   "v1": "fe2a00072a4111181f262229333a444b555c666d777e888f99a0aab1bbc2ccd3dde4eef5ff06101721283239434a546577c6"
+  },
+  {
+   "name": "VFR_HUD",
+   "id": 74,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "airspeed": "-1234.5",
+    "groundspeed": "-1137.25",
+    "alt": "-1040.0",
+    "climb": "-942.75",
+    "heading": "23637",
+    "throttle": "28006"
+   },
+   "v2": "fd14000000072a4a000000509ac400288ec4000082c400b06bc4555c666d2689",
+   "v2_signed": "fd14010000072a4a000000509ac400288ec4000082c400b06bc4555c666d17700315cd5b070000bea4f86fc0e5",
+   "fields_trimmed": {
+    "airspeed": "-1234.0",
+    "groundspeed": "-1136.75",
+    "alt": "-1039.5",
+    "climb": "0.0",
+    "heading": "0",
+    "throttle": "0"
+   },
+   "v2_trimmed": "fd0c000000072a4a000000409ac400188ec400f081c42238",
+   "fields_v1": {
+    "airspeed": "-1234.5",
+    "groundspeed": "-1137.25",
+    "heading": "23637",
+    "throttle": "28006",
+    "alt": "-1040.0",
+    "climb": "-942.75"
+   },
+   "v1": "fe1400072a4a00509ac400288ec4000082c400b06bc4555c666d91ef"
+  },
+  {
+   "name": "COMMAND_ACK",
+   "id": 77,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "command": "6161",
+    "result": "34",
+    "progress": "51",
+    "result_param2": "1498565444",
+    "target_system": "85",
+    "target_component": "102"
+   },
+   "v2": "fd0a000000072a4d000011182233444b52595566ecd5",
+   "v2_signed": "fd0a010000072a4d000011182233444b52595566a5460315cd5b0700006e22b0ef8d37",
+   "fields_trimmed": {
+    "command": "13614",
+    "result": "63",
+    "progress": "80",
+    "result_param2": "0",
+    "target_system": "0",
+    "target_component": "0"
+   },
+   "v2_trimmed": "fd04000000072a4d00002e353f5011ed",
+   "fields_v1": {
+    "command": "6161",
+    "result": "34"
+   },
+   "v1": "fe0300072a4d1118220ebe"
+  },
+  {
+   "name": "NAV_CONTROLLER_OUTPUT",
+   "id": 62,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "nav_roll": "-1234.5",
+    "nav_pitch": "-1137.25",
+    "alt_error": "-1040.0",
+    "aspd_error": "-942.75",
+    "xtrack_error": "-845.5",
+    "nav_bearing": "28006",
+    "target_bearing": "32375",
+    "wp_dist": "36744"
+   },
+   "v2": "fd1a000000072a3e000000509ac400288ec4000082c400b06bc4006053c4666d777e888f78d9",
+   "v2_signed": "fd1a010000072a3e000000509ac400288ec4000082c400b06bc4006053c4666d777e888f41d40315cd5b0700001947c366aaf0",
+   "fields_trimmed": {
+    "nav_roll": "-1234.0",
+    "nav_pitch": "-1136.75",
+    "alt_error": "-1039.5",
+    "aspd_error": "-942.25",
+    "xtrack_error": "0.0",
+    "nav_bearing": "0",
+    "target_bearing": "0",
+    "wp_dist": "0"
+   },
+   "v2_trimmed": "fd10000000072a3e000000409ac400188ec400f081c400906bc4f1ae",
+   "fields_v1": {
+    "nav_roll": "-1234.5",
+    "nav_pitch": "-1137.25",
+    "nav_bearing": "28006",
+    "target_bearing": "32375",
+    "wp_dist": "36744",
+    "alt_error": "-1040.0",
+    "aspd_error": "-942.75",
+    "xtrack_error": "-845.5"
+   },
+   "v1": "fe1a00072a3e00509ac400288ec4000082c400b06bc4006053c4666d777e888f3cdf"
+  },
+  {
+   "name": "MISSION_CURRENT",
+   "id": 42,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "seq": "6161",
+    "total": "10530",
+    "mission_state": "51",
+    "mission_mode": "68"
+   },
+   "v2": "fd06000000072a2a0000111822293344b15d",
+   "v2_signed": "fd06010000072a2a00001118222933449b150315cd5b07000037738fd9a366",
+   "fields_trimmed": {
+    "seq": "13614",
+    "total": "17983",
+    "mission_state": "0",
+    "mission_mode": "0"
+   },
+   "v2_trimmed": "fd04000000072a2a00002e353f464dc5",
+   "fields_v1": {
+    "seq": "6161"
+   },
+   "v1": "fe0200072a2a1118034a"
+  },
+  {
+   "name": "PARAM_VALUE",
+   "id": 22,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "param_value": "-1234.5",
+    "param_count": "10530",
+    "param_index": "14899",
+    "param_id": "MavGCS iOS PARAM",
+    "param_type": "85"
+   },
+   "v2": "fd19000000072a16000000509ac42229333a4d617647435320694f5320504152414d5537f7",
+   "v2_signed": "fd19010000072a16000000509ac42229333a4d617647435320694f5320504152414d55eaa60315cd5b070000c9f4e7b69f47",
+   "fields_trimmed": {
+    "param_value": "-1234.0",
+    "param_count": "17983",
+    "param_index": "0",
+    "param_id": "",
+    "param_type": "0"
+   },
+   "v2_trimmed": "fd06000000072a16000000409ac43f4678da",
+   "fields_v1": {
+    "param_id": "MavGCS iOS PARAM",
+    "param_value": "-1234.5",
+    "param_type": "85",
+    "param_count": "10530",
+    "param_index": "14899"
+   },
+   "v1": "fe1900072a1600509ac42229333a4d617647435320694f5320504152414d55af66"
+  },
+  {
+   "name": "STATUSTEXT",
+   "id": 253,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "severity": "17",
+    "text": "MavGCS iOS STATUSTEXT",
+    "id": "14899",
+    "chunk_seq": "68"
+   },
+   "v2": "fd36000000072afd0000114d617647435320694f5320535441545553544558540000000000000000000000000000000000000000000000000000000000333a44cc07",
+   "v2_signed": "fd36010000072afd0000114d617647435320694f5320535441545553544558540000000000000000000000000000000000000000000000000000000000333a443a930315cd5b070000d8f69f3bef48",
+   "fields_trimmed": {
+    "severity": "46",
+    "text": "MavGCS iOS STATUSTEXT",
+    "id": "0",
+    "chunk_seq": "0"
+   },
+   "v2_trimmed": "fd16000000072afd00002e4d617647435320694f53205354415455535445585446e5",
+   "fields_v1": {
+    "severity": "17",
+    "text": "MavGCS iOS STATUSTEXT"
+   },
+   "v1": "fe3300072afd114d617647435320694f5320535441545553544558540000000000000000000000000000000000000000000000000000000000b11c"
+  },
+  {
+   "name": "HOME_POSITION",
+   "id": 242,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "latitude": "639571985",
+    "longitude": "925903138",
+    "altitude": "1212234291",
+    "x": "-942.75",
+    "y": "-845.5",
+    "z": "-748.25",
+    "q": [
+     "8101.5",
+     "8198.75",
+     "8296.0",
+     "8393.25"
+    ],
+    "approach_x": "-553.75",
+    "approach_y": "-456.5",
+    "approach_z": "-359.25",
+    "time_usec": "17070294981119951547"
+   },
+   "v2": "fd3c000000072af2000011181f2622293037333a414800b06bc4006053c400103bc4002cfd45001b004600a001460025034600700ac40040e4c300a0b3c3bbc2c9d0d7dee5ecc299",
+   "v2_signed": "fd3c010000072af2000011181f2622293037333a414800b06bc4006053c400103bc4002cfd45001b004600a001460025034600700ac40040e4c300a0b3c3bbc2c9d0d7dee5ec9e520315cd5b0700000344c7ba5730",
+   "fields_trimmed": {
+    "latitude": "1128019246",
+    "longitude": "1414350399",
+    "altitude": "1700681552",
+    "x": "-942.25",
+    "y": "-845.0",
+    "z": "0.0",
+    "q": [
+     "0",
+     "0",
+     "0",
+     "0"
+    ],
+    "approach_x": "0.0",
+    "approach_y": "0.0",
+    "approach_z": "0.0",
+    "time_usec": "0"
+   },
+   "v2_trimmed": "fd14000000072af200002e353c433f464d5450575e6500906bc4004053c492b4",
+   "fields_v1": {
+    "latitude": "639571985",
+    "longitude": "925903138",
+    "altitude": "1212234291",
+    "x": "-942.75",
+    "y": "-845.5",
+    "z": "-748.25",
+    "q": [
+     "8101.5",
+     "8198.75",
+     "8296.0",
+     "8393.25"
+    ],
+    "approach_x": "-553.75",
+    "approach_y": "-456.5",
+    "approach_z": "-359.25"
+   },
+   "v1": "fe3400072af211181f2622293037333a414800b06bc4006053c400103bc4002cfd45001b004600a001460025034600700ac40040e4c300a0b3c373ea"
+  },
+  {
+   "name": "BATTERY_STATUS",
+   "id": 147,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "current_consumed": "639571985",
+    "energy_consumed": "925903138",
+    "temperature": "14899",
+    "voltages": [
+     "18497",
+     "22866",
+     "27235",
+     "31604",
+     "35973",
+     "40342",
+     "44711",
+     "49080",
+     "53449",
+     "57818"
+    ],
+    "current_battery": "23637",
+    "id": "102",
+    "battery_function": "119",
+    "type": "136",
+    "battery_remaining": "-103",
+    "time_remaining": "-1078414934",
+    "charge_state": "187",
+    "voltages_ext": [
+     "51393",
+     "55762",
+     "60131",
+     "64500"
+    ],
+    "mode": "221",
+    "fault_bitmask": "66909678"
+   },
+   "v2": "fd36000000072a93000011181f2622293037333a41485259636a747b858c969da7aeb8bfc9d0dae1555c66778899aab1b8bfbbc1c8d2d9e3eaf4fbddeef5fc030054",
+   "v2_signed": "fd36010000072a93000011181f2622293037333a41485259636a747b858c969da7aeb8bfc9d0dae1555c66778899aab1b8bfbbc1c8d2d9e3eaf4fbddeef5fc03f6c00315cd5b070000eaafb1331163",
+   "fields_trimmed": {
+    "current_consumed": "1128019246",
+    "energy_consumed": "1414350399",
+    "temperature": "22352",
+    "voltages": [
+     "25950",
+     "30319",
+     "34688",
+     "39057",
+     "43426",
+     "47795",
+     "52164",
+     "56533",
+     "60902",
+     "65271"
+    ],
+    "current_battery": "31090",
+    "id": "131",
+    "battery_function": "148",
+    "type": "0",
+    "battery_remaining": "0",
+    "time_remaining": "0",
+    "charge_state": "0",
+    "voltages_ext": [
+     "0",
+     "0",
+     "0",
+     "0"
+    ],
+    "mode": "0",
+    "fault_bitmask": "0"
+   },
+   "v2_trimmed": "fd22000000072a9300002e353c433f464d5450575e656f7680879198a2a9b3bac4cbd5dce6edf7fe727983942460",
+   "fields_v1": {
+    "id": "102",
+    "battery_function": "119",
+    "type": "136",
+    "temperature": "14899",
+    "voltages": [
+     "18497",
+     "22866",
+     "27235",
+     "31604",
+     "35973",
+     "40342",
+     "44711",
+     "49080",
+     "53449",
+     "57818"
+    ],
+    "current_battery": "23637",
+    "current_consumed": "639571985",
+    "energy_consumed": "925903138",
+    "battery_remaining": "-103"
+   },
+   "v1": "fe2400072a9311181f2622293037333a41485259636a747b858c969da7aeb8bfc9d0dae1555c66778899a760"
+  },
+  {
+   "name": "TERRAIN_REPORT",
+   "id": 136,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "lat": "639571985",
+    "lon": "925903138",
+    "terrain_height": "-1040.0",
+    "current_height": "-942.75",
+    "spacing": "23637",
+    "pending": "28006",
+    "loaded": "32375"
+   },
+   "v2": "fd16000000072a88000011181f2622293037000082c400b06bc4555c666d777ed801",
+   "v2_signed": "fd16010000072a88000011181f2622293037000082c400b06bc4555c666d777eecc40315cd5b07000093166c8b6016",
+   "fields_trimmed": {
+    "lat": "1128019246",
+    "lon": "1414350399",
+    "terrain_height": "-1039.5",
+    "current_height": "0.0",
+    "spacing": "0",
+    "pending": "0",
+    "loaded": "0"
+   },
+   "v2_trimmed": "fd0c000000072a8800002e353c433f464d5400f081c4a668",
+   "fields_v1": {
+    "lat": "639571985",
+    "lon": "925903138",
+    "spacing": "23637",
+    "terrain_height": "-1040.0",
+    "current_height": "-942.75",
+    "pending": "28006",
+    "loaded": "32375"
+   },
+   "v1": "fe1600072a8811181f2622293037000082c400b06bc4555c666d777ee3cf"
+  },
+  {
+   "name": "DISTANCE_SENSOR",
+   "id": 132,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "time_boot_ms": "639571985",
+    "min_distance": "10530",
+    "max_distance": "14899",
+    "current_distance": "19268",
+    "type": "85",
+    "id": "102",
+    "orientation": "119",
+    "covariance": "136",
+    "horizontal_fov": "-456.5",
+    "vertical_fov": "-359.25",
+    "quaternion": [
+     "14325.5",
+     "14422.75",
+     "14520.0",
+     "14617.25"
+    ],
+    "signal_quality": "204"
+   },
+   "v2": "fd27000000072a84000011181f262229333a444b556677880040e4c300a0b3c300d65f46005b614600e0624600656446ccd6cf",
+   "v2_signed": "fd27010000072a84000011181f262229333a444b556677880040e4c300a0b3c300d65f46005b614600e0624600656446ccac820315cd5b070000fc8d405629d2",
+   "fields_trimmed": {
+    "time_boot_ms": "1128019246",
+    "min_distance": "17983",
+    "max_distance": "22352",
+    "current_distance": "26721",
+    "type": "114",
+    "id": "131",
+    "orientation": "0",
+    "covariance": "0",
+    "horizontal_fov": "0.0",
+    "vertical_fov": "0.0",
+    "quaternion": [
+     "0",
+     "0",
+     "0",
+     "0"
+    ],
+    "signal_quality": "0"
+   },
+   "v2_trimmed": "fd0c000000072a8400002e353c433f46505761687283845a",
+   "fields_v1": {
+    "time_boot_ms": "639571985",
+    "min_distance": "10530",
+    "max_distance": "14899",
+    "current_distance": "19268",
+    "type": "85",
+    "id": "102",
+    "orientation": "119",
+    "covariance": "136"
+   },
+   "v1": "fe0e00072a8411181f262229333a444b55667788002b"
+  },
+  {
+   "name": "WIND",
+   "id": 168,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "direction": "-1234.5",
+    "speed": "-1137.25",
+    "speed_z": "-1040.0"
+   },
+   "v2": "fd0c000000072aa8000000509ac400288ec4000082c436f2",
+   "v2_signed": "fd0c010000072aa8000000509ac400288ec4000082c45ac50315cd5b070000dee1a75be95e",
+   "fields_trimmed": {
+    "direction": "-1234.0",
+    "speed": "0.0",
+    "speed_z": "0.0"
+   },
+   "v2_trimmed": "fd04000000072aa8000000409ac48972",
+   "fields_v1": {
+    "direction": "-1234.5",
+    "speed": "-1137.25",
+    "speed_z": "-1040.0"
+   },
+   "v1": "fe0c00072aa800509ac400288ec4000082c43b5f"
+  },
+  {
+   "name": "RANGEFINDER",
+   "id": 173,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "distance": "-1234.5",
+    "voltage": "-1137.25"
+   },
+   "v2": "fd08000000072aad000000509ac400288ec43a8e",
+   "v2_signed": "fd08010000072aad000000509ac400288ec4359e0315cd5b070000d8ad20bbcd6a",
+   "fields_trimmed": {
+    "distance": "-1234.0",
+    "voltage": "0.0"
+   },
+   "v2_trimmed": "fd04000000072aad000000409ac47f94",
+   "fields_v1": {
+    "distance": "-1234.5",
+    "voltage": "-1137.25"
+   },
+   "v1": "fe0800072aad00509ac400288ec4c07d"
+  },
+  {
+   "name": "COMMAND_LONG",
+   "id": 76,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "param1": "-1234.5",
+    "param2": "-1137.25",
+    "param3": "-1040.0",
+    "param4": "-942.75",
+    "param5": "-845.5",
+    "param6": "-748.25",
+    "param7": "-651.0",
+    "command": "36744",
+    "target_system": "153",
+    "target_component": "170",
+    "confirmation": "187"
+   },
+   "v2": "fd21000000072a4c000000509ac400288ec4000082c400b06bc4006053c400103bc400c022c4888f99aabb5454",
+   "v2_signed": "fd21010000072a4c000000509ac400288ec4000082c400b06bc4006053c400103bc400c022c4888f99aabbf8f60315cd5b07000077ce63bb341e",
+   "fields_trimmed": {
+    "param1": "-1234.0",
+    "param2": "-1136.75",
+    "param3": "-1039.5",
+    "param4": "-942.25",
+    "param5": "-845.0",
+    "param6": "0.0",
+    "param7": "0.0",
+    "command": "0",
+    "target_system": "0",
+    "target_component": "0",
+    "confirmation": "0"
+   },
+   "v2_trimmed": "fd14000000072a4c000000409ac400188ec400f081c400906bc4004053c4232c",
+   "fields_v1": {
+    "target_system": "153",
+    "target_component": "170",
+    "command": "36744",
+    "confirmation": "187",
+    "param1": "-1234.5",
+    "param2": "-1137.25",
+    "param3": "-1040.0",
+    "param4": "-942.75",
+    "param5": "-845.5",
+    "param6": "-748.25",
+    "param7": "-651.0"
+   },
+   "v1": "fe2100072a4c00509ac400288ec4000082c400b06bc4006053c400103bc400c022c4888f99aabbbbc3"
+  },
+  {
+   "name": "COMMAND_INT",
+   "id": 75,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "param1": "-1234.5",
+    "param2": "-1137.25",
+    "param3": "-1040.0",
+    "param4": "-942.75",
+    "x": "1784896597",
+    "y": "2071227750",
+    "z": "-651.0",
+    "command": "36744",
+    "target_system": "153",
+    "target_component": "170",
+    "frame": "187",
+    "current": "204",
+    "autocontinue": "221"
+   },
+   "v2": "fd23000000072a4b000000509ac400288ec4000082c400b06bc4555c636a666d747b00c022c4888f99aabbccddf6a1",
+   "v2_signed": "fd23010000072a4b000000509ac400288ec4000082c400b06bc4555c636a666d747b00c022c4888f99aabbccddb1210315cd5b070000a40bf4064c13",
+   "fields_trimmed": {
+    "param1": "-1234.0",
+    "param2": "-1136.75",
+    "param3": "-1039.5",
+    "param4": "-942.25",
+    "x": "-2021623438",
+    "y": "-1735292285",
+    "z": "0.0",
+    "command": "0",
+    "target_system": "0",
+    "target_component": "0",
+    "frame": "0",
+    "current": "0",
+    "autocontinue": "0"
+   },
+   "v2_trimmed": "fd18000000072a4b000000409ac400188ec400f081c400906bc472798087838a9198ddba",
+   "fields_v1": {
+    "target_system": "153",
+    "target_component": "170",
+    "frame": "187",
+    "command": "36744",
+    "current": "204",
+    "autocontinue": "221",
+    "param1": "-1234.5",
+    "param2": "-1137.25",
+    "param3": "-1040.0",
+    "param4": "-942.75",
+    "x": "1784896597",
+    "y": "2071227750",
+    "z": "-651.0"
+   },
+   "v1": "fe2300072a4b00509ac400288ec4000082c400b06bc4555c636a666d747b00c022c4888f99aabbccdd6db1"
+  },
+  {
+   "name": "PARAM_SET",
+   "id": 23,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "param_value": "-1234.5",
+    "target_system": "34",
+    "target_component": "51",
+    "param_id": "MavGCS iOS PARAM",
+    "param_type": "85"
+   },
+   "v2": "fd17000000072a17000000509ac422334d617647435320694f5320504152414d55152e",
+   "v2_signed": "fd17010000072a17000000509ac422334d617647435320694f5320504152414d5577590315cd5b070000094c68dcca38",
+   "fields_trimmed": {
+    "param_value": "-1234.0",
+    "target_system": "63",
+    "target_component": "0",
+    "param_id": "",
+    "param_type": "0"
+   },
+   "v2_trimmed": "fd05000000072a17000000409ac43f330e",
+   "fields_v1": {
+    "target_system": "34",
+    "target_component": "51",
+    "param_id": "MavGCS iOS PARAM",
+    "param_value": "-1234.5",
+    "param_type": "85"
+   },
+   "v1": "fe1700072a1700509ac422334d617647435320694f5320504152414d558413"
+  },
+  {
+   "name": "REQUEST_DATA_STREAM",
+   "id": 66,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "req_message_rate": "6161",
+    "target_system": "34",
+    "target_component": "51",
+    "req_stream_id": "68",
+    "start_stop": "85"
+   },
+   "v2": "fd06000000072a4200001118223344558d5e",
+   "v2_signed": "fd06010000072a420000111822334455a7160315cd5b070000e4f8f1d51034",
+   "fields_trimmed": {
+    "req_message_rate": "13614",
+    "target_system": "63",
+    "target_component": "0",
+    "req_stream_id": "0",
+    "start_stop": "0"
+   },
+   "v2_trimmed": "fd03000000072a4200002e353f5ace",
+   "fields_v1": {
+    "target_system": "34",
+    "target_component": "51",
+    "req_stream_id": "68",
+    "req_message_rate": "6161",
+    "start_stop": "85"
+   },
+   "v1": "fe0600072a42111822334455a96d"
+  }
+ ]
+}
