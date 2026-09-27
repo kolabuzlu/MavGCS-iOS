@@ -26,6 +26,7 @@ struct ConnectionSheet: View {
                 }
                 Form {
                     ratesSection
+                    OfflineCacheSection()
                     if model.vehicle.linkOpen {
                         linkSection
                         if model.vehicle.heard {

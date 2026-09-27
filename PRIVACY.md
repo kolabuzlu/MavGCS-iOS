@@ -16,7 +16,8 @@ and nothing you do in the app is sent to its author.
 - Your settings: the connection details you enter, telemetry rates,
   units and battery cells.
 - Terrain elevation already downloaded, kept so the terrain instruments
-  work without a signal.
+  work without a signal. How much is kept, and clearing it, is under
+  Settings > Offline cache.
 
 These never leave your phone. Deleting the app deletes them.
 

@@ -60,6 +60,28 @@ public actor CopernicusDEM {
         }
     }
 
+    /// What is saved on disk, for the Settings readout.
+    public func cacheStats() -> TerrainCacheStats {
+        disk.stats()
+    }
+
+    /// A new size, remembered, and the store trimmed to it now rather than
+    /// at the next download.
+    public func setCacheLimit(megabytes: Int) {
+        TerrainDiskCache.limitMb = megabytes
+        disk.enforceLimit()
+    }
+
+    /// Everything saved deleted, and whatever was read from it forgotten, so
+    /// the next look at the ground asks the network again, as the Android
+    /// build's clear does.
+    public func clearCache() {
+        disk.clear()
+        headers = [:]
+        blocks = [:]
+        blockOrder = []
+    }
+
     /// Terrain height in metres above the sea at a point, or nil where there
     /// is none to be had. May wait on the network.
     public func elevation(lat: Double, lon: Double) async -> Float? {
@@ -335,6 +357,20 @@ final class RangeFetcher: NSObject, URLSessionDataDelegate, @unchecked Sendable 
     }
 }
 
+/// What the terrain store holds, for the Settings readout.
+public struct TerrainCacheStats: Sendable, Equatable {
+    public var files = 0
+    public var usedBytes: Int64 = 0
+    /// Zero when saving is off: what is there is still used, nothing joins it.
+    public var limitBytes: Int64 = 0
+
+    public init(files: Int = 0, usedBytes: Int64 = 0, limitBytes: Int64 = 0) {
+        self.files = files
+        self.usedBytes = usedBytes
+        self.limitBytes = limitBytes
+    }
+}
+
 /// Elevation data kept on disk, so the radar works with no signal and a
 /// restart does not fetch again what was already read.
 ///
@@ -342,19 +378,48 @@ final class RangeFetcher: NSObject, URLSessionDataDelegate, @unchecked Sendable 
 /// pixels -- stored exactly as they arrived. In Application Support rather
 /// than Caches, as the Android build keeps it out of its cache directory:
 /// this is an offline map collected by flying, and iOS empties Caches
-/// whenever it wants the space. Held to 500 MB, the Android build's default,
-/// and trimmed oldest first to 90% of that when over.
+/// whenever it wants the space. Held to the size chosen in Settings, and
+/// trimmed oldest first to 90% of that when over.
 public struct TerrainDiskCache: Sendable {
-    static let limitBytes: Int64 = 500 << 20
+    /// The sizes offered, the Android build's. Smaller steps than the
+    /// desktop's on purpose: the desktop stores whole 40 MB tiles, while this
+    /// keeps only the blocks it actually reads, about 2.4 MB each and some
+    /// 30 km square, so 500 MB here covers far more ground. Zero is No Cache.
+    public static let limitsMb = [0, 100, 250, 500, 1024, 2048]
+    public static let defaultLimitMb = 500
+    /// Named as the desktop and Android name it, so the three stay
+    /// recognisably the same setting.
+    static let limitKey = "terrain_cache_mb"
     static let trimFraction = 0.9
 
+    /// The chosen size in megabytes, remembered across runs. Zero keeps what
+    /// is already saved and saves nothing new; only a clear removes it.
+    public static var limitMb: Int {
+        get { limitMb(in: .standard) }
+        set { setLimitMb(newValue, in: .standard) }
+    }
+
+    static func limitMb(in defaults: UserDefaults) -> Int {
+        defaults.object(forKey: limitKey) == nil ? defaultLimitMb : max(0, defaults.integer(forKey: limitKey))
+    }
+
+    static func setLimitMb(_ megabytes: Int, in defaults: UserDefaults) {
+        defaults.set(max(0, megabytes), forKey: limitKey)
+    }
+
     private let directory: URL?
+    private let limitBytes: @Sendable () -> Int64
 
     /// The app's own store, or another folder for a test; nil keeps nothing.
-    public init(directory: URL? = FileManager.default
-        .urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
-        .appendingPathComponent("Terrain", isDirectory: true)
+    /// The limit is the one chosen in Settings unless a test gives its own.
+    public init(
+        directory: URL? = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("Terrain", isDirectory: true),
+        limitMb: (@Sendable () -> Int)? = nil
     ) {
+        let limit = limitMb ?? { TerrainDiskCache.limitMb }
+        limitBytes = { Int64(max(0, limit())) << 20 }
         guard var directory else {
             self.directory = nil
             return
@@ -374,8 +439,9 @@ public struct TerrainDiskCache: Sendable {
 
     /// Written whole or not at all: a block is megabytes, and a file cut
     /// short by the app being killed would fail to decode from then on.
+    /// Nothing is written while saving is off.
     func write(_ name: String, _ bytes: [UInt8]) {
-        guard let directory else { return }
+        guard let directory, limitBytes() > 0 else { return }
         try? Data(bytes).write(to: directory.appendingPathComponent(name), options: .atomic)
         enforceLimit()
     }
@@ -385,24 +451,45 @@ public struct TerrainDiskCache: Sendable {
         try? FileManager.default.removeItem(at: directory.appendingPathComponent(name))
     }
 
-    private func enforceLimit() {
-        guard let directory,
-              let files = try? FileManager.default.contentsOfDirectory(
-                  at: directory,
-                  includingPropertiesForKeys: [.fileSizeKey, .contentModificationDateKey]
-              )
-        else { return }
-        let sized = files.compactMap { url -> (url: URL, size: Int64, date: Date)? in
-            guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) else { return nil }
-            return (url, Int64(values.fileSize ?? 0), values.contentModificationDate ?? .distantPast)
+    /// Files held and bytes on disk. Reads the filesystem, so not for the
+    /// main thread.
+    public func stats() -> TerrainCacheStats {
+        let files = savedFiles()
+        return TerrainCacheStats(files: files.count, usedBytes: files.reduce(0) { $0 + $1.size }, limitBytes: limitBytes())
+    }
+
+    /// Every saved header and block deleted.
+    public func clear() {
+        for file in savedFiles() {
+            try? FileManager.default.removeItem(at: file.url)
         }
-        var total = sized.reduce(0) { $0 + $1.size }
-        guard total > Self.limitBytes else { return }
-        let target = Int64(Double(Self.limitBytes) * Self.trimFraction)
-        for file in sized.sorted(by: { $0.date < $1.date }) where total > target {
+    }
+
+    /// Trimmed back under the limit, oldest first. Only when actually over,
+    /// and then to 90%, so a store sitting on the boundary is not scanned
+    /// again after every block written.
+    public func enforceLimit() {
+        let limit = limitBytes()
+        guard limit > 0 else { return }
+        let files = savedFiles()
+        var total = files.reduce(0) { $0 + $1.size }
+        guard total > limit else { return }
+        let target = Int64(Double(limit) * Self.trimFraction)
+        for file in files.sorted(by: { $0.date < $1.date }) where total > target {
             if (try? FileManager.default.removeItem(at: file.url)) != nil {
                 total -= file.size
             }
+        }
+    }
+
+    private func savedFiles() -> [(url: URL, size: Int64, date: Date)] {
+        let keys: [URLResourceKey] = [.fileSizeKey, .contentModificationDateKey, .isRegularFileKey]
+        guard let directory,
+              let urls = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: keys)
+        else { return [] }
+        return urls.compactMap { url in
+            guard let values = try? url.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { return nil }
+            return (url, Int64(values.fileSize ?? 0), values.contentModificationDate ?? .distantPast)
         }
     }
 }
