@@ -87,8 +87,10 @@ final class WeatherRadar {
             var fetched: [RadarTile] = []
             for (x, y) in wanted {
                 // The trailing parts are the colour scheme, then smoothing and
-                // snow, as the Android build asks for them.
-                guard let url = URL(string: "\(frame.host)\(frame.path)/\(RadarGeometry.tilePixels)/\(RadarGeometry.zoom)/\(x)/\(y)/4/1_1.png"),
+                // snow. Scheme 2, Universal Blue, is the only one RainViewer
+                // still draws since 2026; the 4 the Android build asks for now
+                // comes back as the same tiles.
+                guard let url = URL(string: "\(frame.host)\(frame.path)/\(RadarGeometry.tilePixels)/\(RadarGeometry.zoom)/\(x)/\(y)/2/1_1.png"),
                       let answer = try? await URLSession.shared.data(from: url),
                       (answer.1 as? HTTPURLResponse)?.statusCode == 200,
                       let image = UIImage(data: answer.0)?.cgImage

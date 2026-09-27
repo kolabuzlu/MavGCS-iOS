@@ -22,6 +22,7 @@ struct ConnectionSheet: View {
                 Form {
                     connectSection
                     connectionSection
+                    aboutSection
                 }
                 Form {
                     ratesSection
@@ -161,6 +162,28 @@ struct ConnectionSheet: View {
             LabeledContent("Lost (last 10 s)", value: link.lossPercent.map { String(format: "%.1f%%", $0) } ?? "--")
             LabeledContent("Received / lost", value: "\(link.received) / \(link.lost)")
             LabeledContent("RSSI", value: model.vehicle.rssiPercent.map { String(format: "%.0f%%", $0) } ?? "--")
+        }
+    }
+
+    /// The version, and whose data the instruments show: RainViewer asks for
+    /// a link back, and the Copernicus licence for these exact words. Apple
+    /// credits its imagery itself, with the logo and Legal link on the map.
+    private var aboutSection: some View {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return Section {
+            LabeledContent("Version", value: "\(version) (\(build))")
+            if let rainViewer = URL(string: "https://www.rainviewer.com/") {
+                Link("Weather radar by RainViewer", destination: rainViewer)
+            }
+            Text(verbatim: "Terrain produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        } header: {
+            Text("About")
+        } footer: {
+            Text(verbatim: "The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.")
         }
     }
 

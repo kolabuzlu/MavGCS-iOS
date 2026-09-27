@@ -15,8 +15,8 @@ and nothing you do in the app is sent to its author.
 
 - Your settings: the connection details you enter, telemetry rates,
   units and battery cells.
-- Map tiles and terrain elevation already downloaded, kept so the map and
-  the terrain instruments work without a signal.
+- Terrain elevation already downloaded, kept so the terrain instruments
+  work without a signal.
 
 These never leave your phone. Deleting the app deletes them.
 
@@ -27,11 +27,11 @@ These never leave your phone. Deleting the app deletes them.
   Network permission the first time. The Demo flight is simulated inside
   the app and connects to nothing.
 - **Map, weather and terrain services**, to draw the map around the
-  aircraft: satellite imagery from Esri, weather radar from RainViewer,
-  and terrain elevation from the Copernicus DEM (hosted on Amazon Web
-  Services). Like any web request, these ask for the part of the map
-  being shown, and the services see your internet address. MavGCS sends
-  them nothing else.
+  aircraft: satellite imagery from Apple Maps, built into iOS, whose own
+  privacy policy applies to it; weather radar from RainViewer; and terrain
+  elevation from the Copernicus DEM (hosted on Amazon Web Services). Like
+  any web request, these ask for the part of the map being shown, and the
+  services see your internet address. MavGCS sends them nothing else.
 - **Google Maps**, only when you tap the LAT / LON box, to show you the
   way to the aircraft. The aircraft's coordinates are handed to the Google
   Maps app or website, whose own privacy policy then applies.

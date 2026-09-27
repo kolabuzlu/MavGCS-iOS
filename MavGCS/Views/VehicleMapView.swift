@@ -93,10 +93,10 @@ struct VehicleMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
-        // Under ESRI's imagery, which replaces it; flat, so nothing of Apple's
-        // 3D terrain tilts the tiles out of true.
-        map.preferredConfiguration = MKImageryMapConfiguration(elevationStyle: .flat)
-        map.insertOverlay(context.coordinator.imagery, at: 0, level: .aboveRoads)
+        // Apple's own satellite imagery, which any app may show, credited by
+        // MapKit's own logo and Legal link. Flat, so nothing of Apple's 3D
+        // terrain tilts it out of true.
+        map.preferredConfiguration = Coordinator.configuration(hybrid: false)
         // North up, flat: the guide lines and the wind arrow on the HUD are
         // all read against north, and a map that turns under a finger makes
         // them lie.
@@ -147,6 +147,16 @@ struct VehicleMapView: UIViewRepresentable {
         /// framing, so the view does not jump when an aircraft appears.
         static let framingMeters = 1500.0
 
+        /// Satellite, or Hybrid: the same imagery with Apple's road and place
+        /// names over it. No points of interest in either -- shop and cafe
+        /// pins are clutter over a flight.
+        static func configuration(hybrid: Bool) -> MKMapConfiguration {
+            guard hybrid else { return MKImageryMapConfiguration(elevationStyle: .flat) }
+            let configuration = MKHybridMapConfiguration(elevationStyle: .flat)
+            configuration.pointOfInterestFilter = .excludingAll
+            return configuration
+        }
+
         var parent: VehicleMapView
         var appliedMargins: UIEdgeInsets?
         private let plane = MKPointAnnotation()
@@ -159,9 +169,6 @@ struct VehicleMapView: UIViewRepresentable {
         private var guides: [MKPolyline] = []
         private var drawnTrailVersion = -1
         private var lastTrailDraw = Date.distantPast
-        let imagery = EsriTileOverlay(.imagery)
-        /// Drawn over the imagery for Hybrid, in the Android build's order.
-        private let references = [EsriTileOverlay(.places), EsriTileOverlay(.transportation)]
         private var hybridShown = false
         private var weatherOverlay: WeatherOverlay?
         private var drawnWeatherVersion = -1
@@ -211,18 +218,7 @@ struct VehicleMapView: UIViewRepresentable {
         func update(_ map: MKMapView) {
             if hybridShown != parent.hybrid {
                 hybridShown = parent.hybrid
-                if hybridShown {
-                    // Straight above the imagery and any radar, so the names
-                    // stay readable through rain, and the trail and the guide
-                    // lines, added later, stay on top of them.
-                    var below: MKOverlay = weatherOverlay ?? imagery
-                    for layer in references {
-                        map.insertOverlay(layer, above: below)
-                        below = layer
-                    }
-                } else {
-                    map.removeOverlays(references)
-                }
+                map.preferredConfiguration = Self.configuration(hybrid: hybridShown)
             }
             updateWeather(map)
             updateHome(map)
@@ -257,9 +253,10 @@ struct VehicleMapView: UIViewRepresentable {
                     let overlay = WeatherOverlay(tiles: parent.weatherTiles, centre: position)
                     weatherOverlay = overlay
                     weatherCentre = position
-                    // On the imagery, under the Hybrid labels, the trail and
-                    // the guide lines.
-                    map.insertOverlay(overlay, above: imagery)
+                    // On the imagery, under the trail and the guide lines, and
+                    // under Hybrid's names, which MapKit draws above anything
+                    // at this level, so they stay readable through rain.
+                    map.insertOverlay(overlay, at: 0, level: .aboveRoads)
                 }
                 return
             }
@@ -427,9 +424,6 @@ struct VehicleMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            if let tiles = overlay as? MKTileOverlay {
-                return MKTileOverlayRenderer(tileOverlay: tiles)
-            }
             if let weather = overlay as? WeatherOverlay {
                 return WeatherRenderer(overlay: weather)
             }

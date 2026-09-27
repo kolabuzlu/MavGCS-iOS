@@ -110,7 +110,7 @@ struct MainScreen: View {
         creditInStrip ? 0 : Self.creditHeight + 4
     }
 
-    /// A line of small print over the map, in the style ESRI's credit set.
+    /// A line of small print over the map.
     private func credit(_ text: String) -> some View {
         Text(verbatim: text)
             .font(.system(size: 9, weight: .medium))
@@ -172,17 +172,19 @@ struct MainScreen: View {
             )
             .ignoresSafeArea()
 
-            // The credits along the foot of the map: ESRI's on the left,
-            // which its terms ask to be shown with the imagery, and the
-            // author's on the right, in the strip under the buttons -- no use
-            // for a control where it is the home bar's, but room for a line
-            // of small print. Only for the moment before the screen has been
-            // read are they above the readouts instead, with MapKit's Legal
-            // link lifted over ESRI's.
+            // The credits along the foot of the map: the author's on the left,
+            // and RainViewer's on the right while its radar is up, which its
+            // terms ask for wherever the radar is shown. In the strip under
+            // the buttons -- no use for a control where it is the home bar's,
+            // but room for a line of small print. Only for the moment before
+            // the screen has been read are they above the readouts instead,
+            // with MapKit's Legal link lifted over them.
             HStack(spacing: 6) {
-                credit(EsriTileOverlay.credit)
-                Spacer(minLength: 0)
                 credit("Created by Derin Hakan Karakurt")
+                Spacer(minLength: 0)
+                if model.weather.enabled {
+                    credit("Weather data by RainViewer")
+                }
             }
             .frame(height: Self.creditHeight)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
