@@ -469,9 +469,13 @@ struct DemoVehicle {
                 throttle: UInt16(throttle), alt: Float(altMsl), climb: Float(climb)
             )
         case SysStatus.messageId:
+            // Everything fitted and well, except a rangefinder: like most
+            // planes this one has none, so the Systems strip shows RNGFND dim
+            // beside a Rangefinder field that reads "--".
+            let sensors: UInt32 = 0x3FFF_FFFF & ~MavSysStatusSensor.sensorLaserPosition
             return SysStatus(
-                onboardControlSensorsPresent: 0x3FFF_FFFF, onboardControlSensorsEnabled: 0x3FFF_FFFF,
-                onboardControlSensorsHealth: 0x3FFF_FFFF, load: 350,
+                onboardControlSensorsPresent: sensors, onboardControlSensorsEnabled: sensors,
+                onboardControlSensorsHealth: sensors, load: 350,
                 voltageBattery: UInt16(voltage * 1000), currentBattery: Int16(current * 100),
                 batteryRemaining: Int8(battery.rounded(.down))
             )

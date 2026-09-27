@@ -92,7 +92,15 @@ public struct VehicleState: Sendable, Equatable {
 
     /// SYS_STATUS's sensor bitmasks, carried whole.
     public var sensorsPresent: UInt32?
+    public var sensorsEnabled: UInt32?
     public var sensorsHealth: UInt32?
+
+    /// EKF_STATUS_REPORT's variances for the sensors that have one of their
+    /// own, each a second opinion on that sensor's Systems cell.
+    public var ekfCompassVariance: Float?
+    public var ekfPosHorizVariance: Float?
+    public var ekfPosVertVariance: Float?
+    public var ekfTerrainVariance: Float?
 
     /// The HUD's EKF and VIBE words, or nil before a report has arrived --
     /// drawn white, the quiet state, like everywhere else MavGCS runs.

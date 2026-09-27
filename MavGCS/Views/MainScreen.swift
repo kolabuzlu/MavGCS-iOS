@@ -43,6 +43,13 @@ struct MainScreen: View {
             HStack(spacing: 6) {
                 VStack(spacing: 6) {
                     HudView(vehicle: model.vehicle, cells: $model.cells)
+                    // Blank once the aircraft is out of contact, as the
+                    // desktop's _on_link_gone leaves it: a strip of green
+                    // lights for sensors nobody can see any more is worse
+                    // than blank.
+                    SystemsPanel(
+                        systems: model.vehicle.linkUp ? SystemHealth.cells(model.vehicle) : SystemHealth.noTelemetry
+                    )
                     TelemetryGrid(vehicle: model.vehicle, speedInKph: $model.speedInKph)
                         .frame(height: 140)
                 }

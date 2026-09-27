@@ -145,5 +145,10 @@ struct DemoTests {
         state = client.snapshot()
         #expect(state.mode == "RTL" && state.modePending == nil)
         #expect(state.lat != nil && state.homeLat != nil && state.batteryRemainingPct != nil)
+
+        // A plane with no rangefinder, and everything else in order.
+        let systems = SystemHealth.cells(state)
+        #expect(systems.first { $0.label == "RNGFND" }?.state == .absent)
+        #expect(systems.filter { $0.label != "RNGFND" }.allSatisfy { $0.state == .ok }, "\(systems)")
     }
 }

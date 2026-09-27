@@ -836,6 +836,7 @@ public final class MavlinkClient: @unchecked Sendable {
 
         case let m as SysStatus:
             state.sensorsPresent = m.onboardControlSensorsPresent
+            state.sensorsEnabled = m.onboardControlSensorsEnabled
             state.sensorsHealth = m.onboardControlSensorsHealth
             state.batteryV = (1...65534).contains(m.voltageBattery) ? Float(m.voltageBattery) / 1000 : nil
             state.batteryA = m.currentBattery == -1 ? nil : Float(m.currentBattery) / 100
@@ -913,6 +914,10 @@ public final class MavlinkClient: @unchecked Sendable {
             // Judged against the fix type as it stands when the report
             // lands, as the desktop does.
             state.ekfTint = HealthVerdict.ekf(m, gpsFixType: state.gpsFixType)
+            state.ekfCompassVariance = Self.finite(m.compassVariance)
+            state.ekfPosHorizVariance = Self.finite(m.posHorizVariance)
+            state.ekfPosVertVariance = Self.finite(m.posVertVariance)
+            state.ekfTerrainVariance = Self.finite(m.terrainAltVariance)
 
         case let m as Vibration:
             state.vibeTint = HealthVerdict.vibration(m)
