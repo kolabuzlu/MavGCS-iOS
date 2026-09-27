@@ -52,6 +52,19 @@ struct MainScreen: View {
                 mapArea(height: geometry.size.height)
             }
             .padding(.leading, edges.leading)
+            // The battery, in the strip the display's rounded corners leave
+            // down the left-hand edge. Nothing else moves or changes size
+            // for it, and it keeps clear of the corners at either end.
+            .overlay(alignment: .leading) {
+                if edges.leading >= 10 {
+                    BatteryGauge(percent: model.vehicle.batteryRemainingPct)
+                        .frame(
+                            width: edges.leading - 6,
+                            height: max(geometry.size.height - 2 * Self.gaugeCornerClearance, 60)
+                        )
+                        .padding(.leading, 3)
+                }
+            }
         }
         .ignoresSafeArea()
         .background(Palette.background)
@@ -262,6 +275,11 @@ struct MainScreen: View {
 
     /// Just below the row of buttons.
     private static let radarTop = 6 + MapIconButton.side + 6
+    /// How far the battery gauge stays from the top and bottom of the screen.
+    /// The display's corners are rounded to about 62 points on the current
+    /// Pro phones, and at the gauge's distance from the edge they curve in
+    /// over the last 43 or so.
+    private static let gaugeCornerClearance: CGFloat = 48
     /// ESRI's credit line: nine-point type and its backing.
     private static let creditHeight: CGFloat = 13
 
