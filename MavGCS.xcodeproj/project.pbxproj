@@ -271,6 +271,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MavGCS;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "MavGCS talks to your aircraft through a telemetry radio, WiFi bridge or simulator on the local network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -311,6 +312,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MavGCS;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "MavGCS talks to your aircraft through a telemetry radio, WiFi bridge or simulator on the local network.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
