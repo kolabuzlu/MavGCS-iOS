@@ -24,6 +24,11 @@ struct TerrainRadarView: View {
     /// alone would take up most of the width.
     private var compact: Bool { size < 150 }
 
+    /// The chips' type: the Android build's 12 points at full size, and a
+    /// tenth of the radar's side below that -- small enough that the widest
+    /// pair, "1200m" and "PRED", still clear each other across the top.
+    private var chipFontSize: CGFloat { compact ? min(9, max(7.5, size / 10)) : 12 }
+
     var body: some View {
         // Read here rather than inside the Canvas, so a change to any of them
         // redraws it.
@@ -93,9 +98,9 @@ struct TerrainRadarView: View {
         Button(action: action) {
             let corner: CGFloat = compact ? 5 : 6
             Text(text)
-                .font(.system(size: compact ? 9 : 12, weight: .bold))
+                .font(.system(size: chipFontSize, weight: .bold))
                 .foregroundStyle(Self.chipBlue)
-                .padding(.horizontal, compact ? 5 : 8)
+                .padding(.horizontal, compact ? chipFontSize * 0.55 : 8)
                 .padding(.vertical, compact ? 1 : 2)
                 .background(Color.black.opacity(0.4), in: RoundedRectangle(cornerRadius: corner))
                 .overlay(RoundedRectangle(cornerRadius: corner).strokeBorder(Self.chipBlue.opacity(0.4), lineWidth: 1))

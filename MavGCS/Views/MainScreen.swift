@@ -81,14 +81,18 @@ struct MainScreen: View {
     }
 
     private func mapArea(height: CGFloat) -> some View {
+        let sizes = instrumentSizes(height: height)
+        // The compass sits under the radar, and moves up into its place
+        // while the radar is switched off.
+        let compassTop = model.terrain.showsRadar ? Self.radarTop + sizes.radar + 6 : Self.radarTop
         // Live AGL sits just above the LAT / LON box, at the right-hand end of
         // the readouts along the foot of the map, and rises with them when
-        // something opens below. Only while it fits under the radar, or
-        // under the buttons with the radar off: with a panel up there is no
-        // room left for it, and it steps aside until there is.
+        // something opens below. Only while it fits under the compass: with
+        // a panel up there is no room left for it, and it steps aside until
+        // there is.
         let aglLift = bottomPadding + bottomStackHeight + 6
-        let aglTop = height - aglLift - AglProfileView.height(for: Self.aglWidth)
-        let aglFits = aglTop >= (model.terrain.showsRadar ? Self.radarTop + Self.radarSide + 6 : Self.radarTop)
+        let aglTop = height - aglLift - AglProfileView.height(for: sizes.aglWidth)
+        let aglFits = aglTop >= compassTop + sizes.compass + 6
         let aglUp = aglFits && model.terrain.aglShown
         return ZStack(alignment: .topLeading) {
             VehicleMapView(
@@ -103,12 +107,12 @@ struct MainScreen: View {
                 weatherVersion: model.weather.version,
                 cover: MapCover(
                     insets: UIEdgeInsets(
-                        top: 6 + MapIconButton.side,
+                        top: 6 + MapIconButton.side + (model.vehicle.messages.isEmpty ? 0 : 6 + MessageLine.height),
                         left: 6,
                         bottom: bottomStackHeight + bottomPadding,
                         right: edges.trailing
                     ),
-                    corner: cornerBlocks(aglTop: aglUp ? aglTop : nil),
+                    corner: cornerBlocks(sizes, compassTop: compassTop, aglTop: aglUp ? aglTop : nil),
                     attributionLift: creditInStrip ? 0 : Self.creditHeight + 4
                 ),
                 onTap: { point in
@@ -141,7 +145,7 @@ struct MainScreen: View {
                 .frame(height: Self.creditHeight)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(.leading, 6)
-                .padding(.trailing, creditInStrip ? edges.trailing : edges.trailing + (aglUp ? Self.aglWidth + 6 : 0))
+                .padding(.trailing, creditInStrip ? edges.trailing : edges.trailing + (aglUp ? sizes.aglWidth + 6 : 0))
                 .padding(.bottom, creditInStrip
                     ? max(1, (bottomPadding - Self.creditHeight) / 2)
                     : bottomPadding + bottomStackHeight + 4)
@@ -151,17 +155,25 @@ struct MainScreen: View {
             // the controls' own stack, and beneath it, so a panel slid up from
             // the bottom covers it rather than being squeezed by it.
             if model.terrain.showsRadar {
-                TerrainRadarView(radar: model.terrain, size: Self.radarSide)
+                TerrainRadarView(radar: model.terrain, size: sizes.radar)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .padding(.top, Self.radarTop)
                     .padding(.trailing, edges.trailing)
+                    .transition(.opacity)
             }
+
+            // Heading, course, wind and the way home, between the radar and
+            // Live AGL.
+            CompassRoseView(vehicle: model.vehicle, size: sizes.compass)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.top, compassTop)
+                .padding(.trailing, edges.trailing)
 
             // Live AGL, the ground along the track, in the desktop's
             // proportions and flush with the LAT / LON box's right-hand edge.
             // It comes and goes with the ground to draw, as on the desktop.
             if aglFits {
-                AglProfileView(radar: model.terrain, width: Self.aglWidth)
+                AglProfileView(radar: model.terrain, width: sizes.aglWidth)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(.bottom, aglLift)
                     .padding(.trailing, edges.trailing)
@@ -174,9 +186,18 @@ struct MainScreen: View {
                     Spacer(minLength: 0)
                     mapButtons
                 }
-                // Under the connection box. Along the foot of the map it took
-                // its place in the stack there, and everything above it moved
-                // up as it came and moved back as it went.
+                // The newest message, under the connection box. Up here it no
+                // longer takes a row from the foot of the map, and the
+                // instruments down the right-hand side have that height
+                // instead. It stops short of them, and cuts a long message
+                // off rather than running underneath.
+                if let last = model.vehicle.messages.last {
+                    MessageLine(message: last) { showMessages = true }
+                        .padding(.trailing, (model.terrain.showsRadar ? sizes.radar : sizes.compass) + 6)
+                }
+                // Also under the connection box. Along the foot of the map it
+                // took its place in the stack there, and everything above it
+                // moved up as it came and moved back as it went.
                 if let target = model.flyTarget, !model.flyTargetSent {
                     FlyHereBar(target: target, enabled: model.vehicle.heard) {
                         askFlyAltitude = true
@@ -199,27 +220,42 @@ struct MainScreen: View {
         }
     }
 
-    /// The width the radar and Live AGL were sized against: the row of map
-    /// buttons as it stood then, five buttons and the gaps between them.
-    /// Live AGL is that wide; the radar, at its row's full width, hid too
-    /// much of the map, and is half.
-    private static let instrumentWidth = 5 * MapIconButton.side + 4 * 6
-    private static let radarSide = instrumentWidth / 2
-    private static let aglWidth = instrumentWidth
+    /// The instruments down the map's right-hand side, one under another: the
+    /// radar, the compass and Live AGL. Grown to fill the height between the
+    /// buttons and the readouts at rest, in the proportions Derin chose when
+    /// they first had to share it -- 76, 70 and 70 points tall -- so a
+    /// taller phone gets bigger instruments rather than a gap.
+    private struct InstrumentSizes {
+        let radar: CGFloat
+        let compass: CGFloat
+        let aglWidth: CGFloat
+    }
+
+    /// The bottom stack with no panel open: the readouts over the buttons.
+    private static let restingStackHeight: CGFloat = MapReadouts.height + 6 + ActionBar.height
+
+    private func instrumentSizes(height: CGFloat) -> InstrumentSizes {
+        let room = height - Self.radarTop - bottomPadding - Self.restingStackHeight - 6 - 12
+        let unit = max(room, 180) / 216
+        return InstrumentSizes(radar: 76 * unit, compass: 70 * unit, aglWidth: 70 * unit * 300 / 140)
+    }
+
     /// Just below the row of buttons.
     private static let radarTop = 6 + MapIconButton.side + 6
     /// ESRI's credit line: nine-point type and its backing.
     private static let creditHeight: CGFloat = 13
 
     /// The instruments along the map's right-hand edge, for Follow to keep
-    /// the aircraft clear of: the radar, and Live AGL while it is up.
-    private func cornerBlocks(aglTop: CGFloat?) -> [MapCover.Block] {
+    /// the aircraft clear of: the radar and the compass, and Live AGL while
+    /// it is up.
+    private func cornerBlocks(_ sizes: InstrumentSizes, compassTop: CGFloat, aglTop: CGFloat?) -> [MapCover.Block] {
         var blocks: [MapCover.Block] = []
         if model.terrain.showsRadar {
-            blocks.append(MapCover.Block(width: Self.radarSide, height: Self.radarSide, top: Self.radarTop))
+            blocks.append(MapCover.Block(width: sizes.radar, height: sizes.radar, top: Self.radarTop))
         }
+        blocks.append(MapCover.Block(width: sizes.compass, height: sizes.compass, top: compassTop))
         if let aglTop {
-            blocks.append(MapCover.Block(width: Self.aglWidth, height: AglProfileView.height(for: Self.aglWidth), top: aglTop))
+            blocks.append(MapCover.Block(width: sizes.aglWidth, height: AglProfileView.height(for: sizes.aglWidth), top: aglTop))
         }
         return blocks
     }
@@ -244,7 +280,10 @@ struct MainScreen: View {
             // The fan opening upwards, as the radar draws it; the ground seen
             // side-on, as Live AGL does.
             MapIconButton(glyph: .radarFan, active: model.terrain.showsRadar, label: "Terrain radar") {
-                model.terrain.showsRadar.toggle()
+                // The compass slides up into the radar's place, and back.
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    model.terrain.showsRadar.toggle()
+                }
             }
             MapIconButton(icon: "mountain.2", active: model.terrain.showsAgl, label: "Live AGL") {
                 model.terrain.showsAgl.toggle()
@@ -264,9 +303,7 @@ struct MainScreen: View {
             case .guided:
                 GuidedPanel { panel = nil }
             case nil:
-                if let last = model.vehicle.messages.last {
-                    MessageLine(message: last) { showMessages = true }
-                }
+                EmptyView()
             }
             ActionBar(panel: $panel)
         }
@@ -430,6 +467,8 @@ private struct RadarFanGlyph: Shape {
 /// at the left, where the desktop and the Android build keep it, and the
 /// position held to the right-hand end.
 private struct MapReadouts: View {
+    static let height: CGFloat = 24
+
     let vehicle: VehicleState
 
     var body: some View {
@@ -474,13 +513,15 @@ private extension View {
     func readoutBox() -> some View {
         lineLimit(1)
             .padding(.horizontal, 8)
-            .frame(height: 24)
+            .frame(height: MapReadouts.height)
             .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
     }
 }
 
 /// The newest line from the Messages panel, and the way into the rest.
 private struct MessageLine: View {
+    static let height: CGFloat = 26
+
     let message: VehicleMessage
     let action: () -> Void
 
@@ -498,7 +539,7 @@ private struct MessageLine: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 8)
-            .frame(height: 26)
+            .frame(height: Self.height)
             .background(Palette.mapChip, in: RoundedRectangle(cornerRadius: controlCorner))
         }
         .buttonStyle(.plain)
@@ -507,6 +548,8 @@ private struct MessageLine: View {
 
 /// Along the bottom of the map: arming, and the two panels.
 private struct ActionBar: View {
+    static let height: CGFloat = 38
+
     @Environment(GcsModel.self) private var model
     @Binding var panel: MainScreen.Panel?
 
@@ -545,7 +588,7 @@ private struct ActionBar: View {
             panelButton("MODES", .modes, fill: Palette.surfaceVariant, ink: Palette.onSurface)
             panelButton("GUIDED", .guided, fill: Palette.blue, ink: .white)
         }
-        .frame(height: 38)
+        .frame(height: Self.height)
     }
 
     private func panelButton(_ title: String, _ which: MainScreen.Panel, fill: Color, ink: Color) -> some View {

@@ -80,6 +80,12 @@ private struct AglPainter {
 
     func draw(_ context: inout GraphicsContext, size: CGSize) {
         let s = size.width / Self.frame.width
+        // The writing keeps its size as the panel shrinks, so below the
+        // desktop's scale the plot box gives it room: at least 20 points for
+        // the heights down the left, and the two numbers along the top kept
+        // three points clear of the edge.
+        let left = max(Self.left, 20 / s)
+        let valueBaseline = max(19, (3 + 0.72 * Self.aglSize) / s)
         let rel = picture.relative
         let n = rel.count
         let span = picture.behindM + picture.aheadM
@@ -87,7 +93,7 @@ private struct AglPainter {
         let hi = picture.hi
 
         func xOf(_ distance: Double) -> Double {
-            Self.left + (Self.right - Self.left) * (distance + picture.behindM) / span
+            left + (Self.right - left) * (distance + picture.behindM) / span
         }
         func yOf(_ r: Double) -> Double {
             Self.bottom - (Self.bottom - Self.top) * (r - lo) / (hi - lo)
@@ -118,7 +124,7 @@ private struct AglPainter {
         let levels = stride(from: (lo / vstep).rounded(.up) * vstep, through: hi, by: vstep).map { $0 }
         var grid = Path()
         for v in levels {
-            grid.move(to: point(Self.left, yOf(v)))
+            grid.move(to: point(left, yOf(v)))
             grid.addLine(to: point(Self.right, yOf(v)))
         }
         context.stroke(grid, with: .color(.white.opacity(0.14)), lineWidth: s)
@@ -184,7 +190,7 @@ private struct AglPainter {
             // rather than drawn off the edge.
             for flown in picture.track {
                 let x = xOf(-flown.asternM)
-                if x < Self.left { continue }
+                if x < left { continue }
                 let p = point(x, yOf(flown.amslM - picture.amslM))
                 if behind.isEmpty { behind.move(to: p) } else { behind.addLine(to: p) }
             }
@@ -192,7 +198,7 @@ private struct AglPainter {
         if behind.isEmpty {
             // Nothing flown yet -- just connected, or stationary. The
             // gradient at least says which way it is going.
-            behind.move(to: point(Self.left, yOf(picture.slope * -picture.behindM)))
+            behind.move(to: point(left, yOf(picture.slope * -picture.behindM)))
         }
         behind.addLine(to: here)
         context.stroke(behind, with: .color(Self.blue), lineWidth: 1.5 * s)
@@ -216,7 +222,7 @@ private struct AglPainter {
         // foot of the panel passes behind the distances rather than through
         // them.
         for v in levels {
-            text("\(Int(v.rounded()))", size: Self.tickSize, colour: Self.tick, x: Self.left - 4, baseline: yOf(v) + 3, align: .trailing)
+            text("\(Int(v.rounded()))", size: Self.tickSize, colour: Self.tick, x: left - 4, baseline: yOf(v) + 3, align: .trailing)
         }
         let hstep = LiveAgl.niceStep(span)
         var distance = -(picture.behindM / hstep).rounded(.down) * hstep
@@ -227,10 +233,10 @@ private struct AglPainter {
 
         // The two numbers. AGL is the gap right here; the one on the right is
         // the smallest gap anywhere ahead.
-        text("AGL", size: Self.captionSize, bold: true, colour: Self.blue, x: 96, baseline: 18, align: .trailing)
+        text("AGL", size: Self.captionSize, bold: true, colour: Self.blue, x: 96, baseline: valueBaseline - 1, align: .trailing)
         text(
             picture.aglM.map { "\(Int($0.rounded())) m" } ?? "--",
-            size: Self.aglSize, bold: true, colour: .white, x: 100, baseline: 19, align: .leading
+            size: Self.aglSize, bold: true, colour: .white, x: 100, baseline: valueBaseline, align: .leading
         )
         let aheadColour = switch picture.alarm {
         case .bad: Color(hex: 0xFF6B6B)
@@ -239,7 +245,7 @@ private struct AglPainter {
         }
         text(
             picture.clearAheadM.map { "▸ \(Int($0.rounded())) m" } ?? "--",
-            size: Self.aheadSize, bold: true, colour: aheadColour, x: 292, baseline: 18, align: .trailing
+            size: Self.aheadSize, bold: true, colour: aheadColour, x: 292, baseline: valueBaseline - 1, align: .trailing
         )
     }
 }
