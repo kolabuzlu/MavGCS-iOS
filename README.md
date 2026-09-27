@@ -53,6 +53,8 @@ left.
 - **SITL, MAVProxy, a radio that sends to the phone** - UDP, *Listen*,
   port `14550`.
 - **A TCP server** - TCP, the server's address and port (SITL: `5760`).
+- **No aircraft at hand** - choose *Demo* and connect: a simulated plane
+  flies over Ankara inside the app and answers every control.
 
 The first connection asks for Local Network access. MavGCS cannot reach
 anything on WiFi without it; it is under Settings > Privacy & Security >
