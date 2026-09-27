@@ -2,6 +2,67 @@ import MapKit
 import MavlinkCore
 import SwiftUI
 
+/// What the app's own controls cover of the map, in points in from its
+/// edges: a strip along each side, and the instruments standing in from the
+/// right-hand one -- the terrain radar under the top strip, and the Live AGL
+/// panel above the bottom one while it is up.
+struct MapCover: Equatable {
+    var insets = UIEdgeInsets.zero
+    var corner: [Block] = []
+    /// How much higher than the bottom strip MapKit's logo and Legal link
+    /// sit: room kept under them for the imagery's own credit.
+    var attributionLift: CGFloat = 0
+
+    /// An instrument flush with the right-hand strip: its size, and how far
+    /// down from the map's top edge it starts.
+    struct Block: Equatable {
+        var width: CGFloat
+        var height: CGFloat
+        var top: CGFloat
+    }
+
+    /// The margins MapKit centres the map within, which is where Follow puts
+    /// the aircraft: chosen so that their middle falls on the middle of the
+    /// map left clear -- the space between the rows of controls, less the
+    /// instruments along its right-hand side -- rather than the middle of
+    /// the whole map, much of which is under the controls. The bottom and
+    /// left margins are fixed by MapKit's logo and Legal link, which sit
+    /// inside them and have to stay clear of the controls, so the top and
+    /// right ones do the moving.
+    func margins(in size: CGSize) -> UIEdgeInsets {
+        let left = insets.left
+        let bottom = insets.bottom + 2 + attributionLift
+        let clear = CGRect(
+            x: insets.left,
+            y: insets.top,
+            width: size.width - insets.left - insets.right,
+            height: size.height - insets.top - insets.bottom
+        )
+        let blocks = corner.map { block in
+            CGRect(x: size.width - insets.right - block.width, y: block.top, width: block.width, height: block.height)
+                .intersection(clear)
+        }.filter { !$0.isNull && !$0.isEmpty }
+        let clearArea = clear.width * clear.height
+        let coveredArea = blocks.reduce(0) { $0 + $1.width * $1.height }
+        // Before the map has a size, or with a panel up so tall that nothing
+        // is left: the middle of whatever is above the controls.
+        guard clear.width > 0, clear.height > 0, clearArea > coveredArea else {
+            return UIEdgeInsets(top: 0, left: left, bottom: bottom, right: 0)
+        }
+        // The middle of what is left: the clear rectangle's, with each
+        // instrument's corner taken back out, all weighted by their areas.
+        let area = clearArea - coveredArea
+        let x = (clear.midX * clearArea - blocks.reduce(0) { $0 + $1.midX * $1.width * $1.height }) / area
+        let y = (clear.midY * clearArea - blocks.reduce(0) { $0 + $1.midY * $1.width * $1.height }) / area
+        return UIEdgeInsets(
+            top: max(0, 2 * y - (size.height - bottom)),
+            left: left,
+            bottom: bottom,
+            right: max(0, size.width + left - 2 * x)
+        )
+    }
+}
+
 /// The moving map: the aircraft, home, the trail flown, the guide lines,
 /// and the point tapped to fly to.
 ///
@@ -17,10 +78,12 @@ struct VehicleMapView: UIViewRepresentable {
     @Binding var follow: Bool
     let hybrid: Bool
     let showVectors: Bool
-    /// How far up from the bottom of the map the app's own controls reach.
-    /// MapKit puts its logo and Legal link at the bottom left, and they are
-    /// required to stay visible, so they are lifted clear of them.
-    let bottomClearance: CGFloat
+    let weatherTiles: [RadarTile]
+    let weatherVersion: Int
+    /// What the app's own controls cover of the map. The aircraft is followed
+    /// in the middle of what they leave clear, and MapKit's logo and Legal
+    /// link, which are required to stay visible, are lifted above them.
+    let cover: MapCover
     let onTap: (CLLocationCoordinate2D) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -30,7 +93,10 @@ struct VehicleMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView()
         map.delegate = context.coordinator
-        map.preferredConfiguration = context.coordinator.configuration(hybrid: hybrid)
+        // Under ESRI's imagery, which replaces it; flat, so nothing of Apple's
+        // 3D terrain tilts the tiles out of true.
+        map.preferredConfiguration = MKImageryMapConfiguration(elevationStyle: .flat)
+        map.insertOverlay(context.coordinator.imagery, at: 0, level: .aboveRoads)
         // North up, flat: the guide lines and the wind arrow on the HUD are
         // all read against north, and a map that turns under a finger makes
         // them lie.
@@ -59,12 +125,16 @@ struct VehicleMapView: UIViewRepresentable {
         context.coordinator.parent = self
         // Compared with what was last asked for, not read back: the margins
         // a view reports include its safe area, so they never match.
-        if context.coordinator.appliedClearance != bottomClearance {
-            context.coordinator.appliedClearance = bottomClearance
-            map.layoutMargins = UIEdgeInsets(top: 0, left: 6, bottom: bottomClearance + 2, right: 0)
+        let margins = cover.margins(in: map.bounds.size)
+        if context.coordinator.appliedMargins != margins {
+            context.coordinator.appliedMargins = margins
+            map.layoutMargins = margins
             // MapKit places its attribution in a layout pass of its own and
             // does not always schedule one for a margin change.
             map.setNeedsLayout()
+            // The middle has moved, so a followed aircraft goes to it now
+            // rather than whenever it next moves.
+            context.coordinator.recentre()
         }
         context.coordinator.update(map)
     }
@@ -76,7 +146,7 @@ struct VehicleMapView: UIViewRepresentable {
         static let startCenter = CLLocationCoordinate2D(latitude: 39.925386, longitude: 32.836524)
 
         var parent: VehicleMapView
-        var appliedClearance: CGFloat = -1
+        var appliedMargins: UIEdgeInsets?
         private let plane = MKPointAnnotation()
         private let home = MKPointAnnotation()
         private let target = MKPointAnnotation()
@@ -87,7 +157,13 @@ struct VehicleMapView: UIViewRepresentable {
         private var guides: [MKPolyline] = []
         private var drawnTrailVersion = -1
         private var lastTrailDraw = Date.distantPast
-        private var hybrid: Bool?
+        let imagery = EsriTileOverlay(.imagery)
+        /// Drawn over the imagery for Hybrid, in the Android build's order.
+        private let references = [EsriTileOverlay(.places), EsriTileOverlay(.transportation)]
+        private var hybridShown = false
+        private var weatherOverlay: WeatherOverlay?
+        private var drawnWeatherVersion = -1
+        private var weatherCentre: CLLocationCoordinate2D?
         private var framedFirstFix = false
         /// What the guides were last drawn from. State arrives up to twenty
         /// times a second, most of it about something else entirely, and
@@ -99,9 +175,12 @@ struct VehicleMapView: UIViewRepresentable {
             self.parent = parent
         }
 
-        func configuration(hybrid: Bool) -> MKMapConfiguration {
-            hybrid ? MKHybridMapConfiguration(elevationStyle: .flat) : MKImageryMapConfiguration(elevationStyle: .flat)
+        /// Follow puts the aircraft back in the middle on the next update,
+        /// even if it has not moved.
+        func recentre() {
+            centredOn = nil
         }
+
 
         @objc func tapped(_ recognizer: UITapGestureRecognizer) {
             guard let map = recognizer.view as? MKMapView else { return }
@@ -114,15 +193,61 @@ struct VehicleMapView: UIViewRepresentable {
         }
 
         func update(_ map: MKMapView) {
-            if hybrid != parent.hybrid {
-                hybrid = parent.hybrid
-                map.preferredConfiguration = configuration(hybrid: parent.hybrid)
+            if hybridShown != parent.hybrid {
+                hybridShown = parent.hybrid
+                if hybridShown {
+                    // Straight above the imagery and any radar, so the names
+                    // stay readable through rain, and the trail and the guide
+                    // lines, added later, stay on top of them.
+                    var below: MKOverlay = weatherOverlay ?? imagery
+                    for layer in references {
+                        map.insertOverlay(layer, above: below)
+                        below = layer
+                    }
+                } else {
+                    map.removeOverlays(references)
+                }
             }
+            updateWeather(map)
             updateHome(map)
             updateTarget(map)
             updateTrail(map)
             updatePlane(map)
             updateGuides(map)
+        }
+
+        /// The radar, replaced when its tiles change and otherwise only moved
+        /// with the aircraft -- and only once it has moved far enough for the
+        /// circle's edge to show it, since every move redraws the whole of it.
+        private func updateWeather(_ map: MKMapView) {
+            let vehicle = parent.vehicle
+            var position: CLLocationCoordinate2D?
+            if let lat = vehicle.lat, let lon = vehicle.lon, lat != 0 || lon != 0 {
+                position = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            }
+            if parent.weatherVersion != drawnWeatherVersion {
+                drawnWeatherVersion = parent.weatherVersion
+                if let old = weatherOverlay {
+                    map.removeOverlay(old)
+                    weatherOverlay = nil
+                }
+                if !parent.weatherTiles.isEmpty, let position {
+                    let overlay = WeatherOverlay(tiles: parent.weatherTiles, centre: position)
+                    weatherOverlay = overlay
+                    weatherCentre = position
+                    // On the imagery, under the Hybrid labels, the trail and
+                    // the guide lines.
+                    map.insertOverlay(overlay, above: imagery)
+                }
+                return
+            }
+            guard let overlay = weatherOverlay, let position, let last = weatherCentre else { return }
+            let moved = MKMapPoint(last).distance(to: MKMapPoint(position))
+            if moved > 250 {
+                overlay.move(to: position)
+                weatherCentre = position
+                map.renderer(for: overlay)?.setNeedsDisplay()
+            }
         }
 
         private func updatePlane(_ map: MKMapView) {
@@ -273,8 +398,14 @@ struct VehicleMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let tiles = overlay as? MKTileOverlay {
+                return MKTileOverlayRenderer(tileOverlay: tiles)
+            }
+            if let weather = overlay as? WeatherOverlay {
+                return WeatherRenderer(overlay: weather)
+            }
             if let trail = overlay as? TrailLine {
-                let renderer = MKPolylineRenderer(polyline: trail)
+                let renderer = ScreenLineRenderer(polyline: trail)
                 renderer.strokeColor = UIColor(Palette.red)
                 renderer.lineWidth = 3
                 renderer.lineCap = .round
@@ -282,7 +413,7 @@ struct VehicleMapView: UIViewRepresentable {
                 return renderer
             }
             if let guide = overlay as? GuideLine {
-                let renderer = MKPolylineRenderer(polyline: guide)
+                let renderer = ScreenLineRenderer(polyline: guide)
                 renderer.strokeColor = UIColor(guide.kind.color)
                 renderer.lineWidth = guide.kind.width
                 renderer.lineCap = guide.kind == .heading ? .butt : .round
@@ -313,6 +444,25 @@ private nonisolated enum Guide {
 
 nonisolated final class TrailLine: MKPolyline {}
 
+/// A polyline whose width and dashes are in screen points, whatever MapKit
+/// does with it.
+///
+/// MapKit draws a plain polyline in screen points, but a dashed one falls
+/// back to an older drawing path that scales the width -- and the dashes --
+/// like a road at the current zoom. The heading line, the one dashed guide,
+/// came out twice the width of the ground track beside it with dashes more
+/// than twice as long as asked for. Setting them here, in map points for
+/// this zoom, holds them to what was asked for.
+nonisolated final class ScreenLineRenderer: MKPolylineRenderer {
+    override func applyStrokeProperties(to context: CGContext, atZoomScale zoomScale: MKZoomScale) {
+        super.applyStrokeProperties(to: context, atZoomScale: zoomScale)
+        context.setLineWidth(lineWidth / zoomScale)
+        if let pattern = lineDashPattern, !pattern.isEmpty {
+            context.setLineDash(phase: 0, lengths: pattern.map { CGFloat($0.doubleValue) / zoomScale })
+        }
+    }
+}
+
 nonisolated final class GuideLine: MKPolyline {
     enum Kind {
         case predicted, nav, course, heading
@@ -331,7 +481,7 @@ nonisolated final class GuideLine: MKPolyline {
             case .predicted: return 2.8
             case .nav: return 2
             case .course: return 1.8
-            case .heading: return 1.5
+            case .heading: return 1.8 // the ground track's own width
             }
         }
     }
@@ -393,7 +543,7 @@ final class PlaneMarkerView: MKAnnotationView {
     /// The desktop's plane, nose up, at a size that reads on a phone.
     private static let icon: UIImage? = {
         guard let source = UIImage(named: "Plane") else { return nil }
-        let width: CGFloat = 46
+        let width: CGFloat = 55 // 46 × 1.2
         let size = CGSize(width: width, height: width * source.size.height / source.size.width)
         return UIGraphicsImageRenderer(size: size).image { _ in source.draw(in: CGRect(origin: .zero, size: size)) }
     }()
@@ -406,17 +556,44 @@ final class HomeMarkerView: MKAnnotationView {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
         image = Self.icon
         displayPriority = .required
-        zPriority = .defaultSelected
+        // Beneath everything else, as on the desktop: home is a reference
+        // point, and must never hide the aircraft flying over it. It was
+        // .defaultSelected, which is the same 1000 as the plane's .max --
+        // a tie MapKit settled whichever way it liked.
+        zPriority = .min
     }
 
     required init?(coder: NSCoder) {
         fatalError("not used")
     }
 
-    private static let icon: UIImage? = {
-        guard let source = UIImage(named: "Home") else { return nil }
-        let size = CGSize(width: 28, height: 28 * source.size.height / source.size.width)
-        return UIGraphicsImageRenderer(size: size).image { _ in source.draw(in: CGRect(origin: .zero, size: size)) }
+    /// The desktop's own home marker, drawn from its SVG rather than scaled
+    /// up from a bitmap: a dark disc ringed in green, a white house, a green
+    /// door. The Android build ships it as a 90-pixel PNG, which at this
+    /// size would be enlarged past its own resolution and go soft.
+    private static let icon: UIImage = {
+        let side: CGFloat = 28
+        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { context in
+            let g = context.cgContext
+            // The SVG's own coordinates: a 28-unit square.
+            g.scaleBy(x: side / 28, y: side / 28)
+            let green = UIColor(red: 0x4C / 255, green: 0xAF / 255, blue: 0x50 / 255, alpha: 1)
+            let disc = CGRect(x: 2, y: 2, width: 24, height: 24)
+            g.setFillColor(UIColor(red: 20 / 255, green: 20 / 255, blue: 20 / 255, alpha: 0.72).cgColor)
+            g.fillEllipse(in: disc)
+            g.setStrokeColor(green.cgColor)
+            g.setLineWidth(2)
+            g.strokeEllipse(in: disc)
+            g.setFillColor(UIColor.white.cgColor)
+            g.move(to: CGPoint(x: 14, y: 6))
+            g.addLine(to: CGPoint(x: 22, y: 13.5))
+            g.addLine(to: CGPoint(x: 6, y: 13.5))
+            g.closePath()
+            g.fillPath()
+            g.fill(CGRect(x: 8.5, y: 13.5, width: 11, height: 7))
+            g.setFillColor(green.cgColor)
+            g.fill(CGRect(x: 12.2, y: 16, width: 3.6, height: 4.5))
+        }
     }()
 }
 

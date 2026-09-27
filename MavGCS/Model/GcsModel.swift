@@ -14,6 +14,10 @@ final class GcsModel {
     private let client = MavlinkClient()
 
     private(set) var vehicle = VehicleState()
+    /// RainViewer's radar around the aircraft, when the Weather button is on.
+    let weather = WeatherRadar()
+    /// The ground ahead of the aircraft, for the terrain radar.
+    let terrain = TerrainRadar()
     var form: ConnectionForm {
         didSet { Preferences.saveForm(form) }
     }
@@ -38,10 +42,22 @@ final class GcsModel {
         didSet { Preferences.cells = cells }
     }
 
+    /// How often attitude and position are asked for. A change goes to the
+    /// vehicle at once when connected, which is what is wanted when the
+    /// picture starts to stutter mid-flight.
+    var rates: StreamRates {
+        didSet {
+            guard rates != oldValue else { return }
+            Preferences.rates = rates
+            client.setStreamRates(rates)
+        }
+    }
+
     init() {
         form = Preferences.loadForm()
         speedInKph = Preferences.speedInKph
         cells = Preferences.cells
+        rates = Preferences.rates
         // The main queue rather than a Task: it runs what it is given in the
         // order given, so an older state can never land on top of a newer one.
         client.observe { [weak self] state in
@@ -53,7 +69,7 @@ final class GcsModel {
         // opens at start, so a rebuilt app is back on the air without a
         // trip through the connection panel. Never set in normal use.
         if UserDefaults.standard.bool(forKey: "autoconnect") {
-            client.connect(form.config)
+            client.connect(form.config, rates: rates)
         }
     }
 
@@ -62,6 +78,8 @@ final class GcsModel {
         if let lat = state.lat, let lon = state.lon, lat != 0 || lon != 0 {
             extendTrail(CLLocationCoordinate2D(latitude: lat, longitude: lon))
         }
+        weather.follow(lat: state.lat, lon: state.lon)
+        terrain.update(state)
         // The screen stays on while a link is open. A GCS that goes dark in
         // the middle of a flight is a GCS that has to be unlocked, found and
         // read again at the worst possible moment.
@@ -74,7 +92,7 @@ final class GcsModel {
         if vehicle.linkOpen {
             client.disconnect()
         } else {
-            client.connect(form.config)
+            client.connect(form.config, rates: rates)
         }
     }
 
@@ -195,6 +213,30 @@ enum Preferences {
             return cellChoices.contains(stored) ? stored : 4
         }
         set { defaults.set(newValue, forKey: "battery_cells") }
+    }
+
+    /// The rates offered, in Hz, as on the desktop and Android.
+    static let rateChoices: [Float] = [1, 2, 3, 5]
+
+    /// Read on every connection, so a stored value outside the offered set
+    /// is treated as absent: a stray setting must not be why a link
+    /// misbehaves.
+    static var rates: StreamRates {
+        get {
+            let attitude = defaults.float(forKey: "telemetry_attitude_hz")
+            let position = defaults.float(forKey: "telemetry_position_hz")
+            return StreamRates(
+                attitudeHz: rateChoices.contains(attitude) ? attitude : 5,
+                positionHz: rateChoices.contains(position) ? position : 2,
+                // Off unless chosen: the reduced set is what fits a slow link.
+                full: defaults.bool(forKey: "telemetry_full")
+            )
+        }
+        set {
+            defaults.set(newValue.attitudeHz, forKey: "telemetry_attitude_hz")
+            defaults.set(newValue.positionHz, forKey: "telemetry_position_hz")
+            defaults.set(newValue.full, forKey: "telemetry_full")
+        }
     }
 
     static func loadForm() -> ConnectionForm {

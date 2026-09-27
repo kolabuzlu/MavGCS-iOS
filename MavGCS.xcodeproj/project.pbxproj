@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		4D4156474353000000000012 /* MavlinkCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4156474353000000000011 /* MavlinkCore */; };
+		4D4156474353000000000015 /* TerrainCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4156474353000000000014 /* TerrainCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +30,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D4156474353000000000012 /* MavlinkCore in Frameworks */,
+				4D4156474353000000000015 /* TerrainCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -73,6 +75,7 @@
 			name = MavGCS;
 			packageProductDependencies = (
 				4D4156474353000000000011 /* MavlinkCore */,
+				4D4156474353000000000014 /* TerrainCore */,
 			);
 			productName = MavGCS;
 			productReference = 4D4156474353000000000004 /* MavGCS.app */;
@@ -264,6 +267,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PDH9LWGLJB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MavGCS;
@@ -303,6 +307,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PDH9LWGLJB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = MavGCS;
@@ -369,6 +374,10 @@
 		4D4156474353000000000011 /* MavlinkCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MavlinkCore;
+		};
+		4D4156474353000000000014 /* TerrainCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TerrainCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

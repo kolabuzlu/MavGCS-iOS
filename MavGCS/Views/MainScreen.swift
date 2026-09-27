@@ -49,7 +49,7 @@ struct MainScreen: View {
                 .frame(width: columnWidth)
                 .padding(.vertical, 6)
 
-                mapArea
+                mapArea(height: geometry.size.height)
             }
             .padding(.leading, edges.leading)
         }
@@ -65,14 +65,32 @@ struct MainScreen: View {
         .flyHereAltitudePrompt(isPresented: $askFlyAltitude)
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
-        // The arm and disarm buttons sit on the bottom edge, and a thumb
-        // pressing DISARM can drift up it. The first swipe from the edge only
-        // shows the home bar; it takes a second to leave the app.
-        .defersSystemGestures(on: .bottom)
     }
 
-    private var mapArea: some View {
-        ZStack(alignment: .topLeading) {
+    /// Where the map's bottom controls stop: just clear of the strip iOS keeps
+    /// for its home bar. Down inside it they sat under the bar itself, and a
+    /// press there could be taken over by the swipe home -- which is how the
+    /// ARM button came to be left reading FORCE….
+    private var bottomPadding: CGFloat {
+        edges.insets.bottom > 0 ? edges.insets.bottom + 3 : 6
+    }
+
+    /// Whether there is a home-bar strip under the buttons for ESRI's credit.
+    private var creditInStrip: Bool {
+        bottomPadding >= Self.creditHeight + 2
+    }
+
+    private func mapArea(height: CGFloat) -> some View {
+        // Live AGL sits just above the LAT / LON box, at the right-hand end of
+        // the readouts along the foot of the map, and rises with them when
+        // something opens below. Only while it fits under the radar: with a
+        // panel up there is no room left for it, and it steps aside until
+        // there is.
+        let aglLift = bottomPadding + bottomStackHeight + 6
+        let aglTop = height - aglLift - AglProfileView.height(for: Self.aglWidth)
+        let aglFits = aglTop >= Self.radarTop + Self.radarSide + 6
+        let aglUp = aglFits && model.terrain.aglShown
+        return ZStack(alignment: .topLeading) {
             VehicleMapView(
                 vehicle: model.vehicle,
                 trail: model.trail,
@@ -81,7 +99,18 @@ struct MainScreen: View {
                 follow: $follow,
                 hybrid: hybrid,
                 showVectors: showVectors,
-                bottomClearance: bottomStackHeight + 6,
+                weatherTiles: model.weather.tiles,
+                weatherVersion: model.weather.version,
+                cover: MapCover(
+                    insets: UIEdgeInsets(
+                        top: 6 + MapIconButton.side,
+                        left: 6,
+                        bottom: bottomStackHeight + bottomPadding,
+                        right: edges.trailing
+                    ),
+                    corner: cornerBlocks(aglTop: aglUp ? aglTop : nil),
+                    attributionLift: creditInStrip ? 0 : Self.creditHeight + 4
+                ),
                 onTap: { point in
                     // Nothing to send it to until a vehicle has been heard,
                     // and a pin that cannot be flown to only misleads.
@@ -93,12 +122,67 @@ struct MainScreen: View {
             )
             .ignoresSafeArea()
 
+            // ESRI's attribution, which its terms ask to be shown with the
+            // imagery: bottom left, in the strip under the buttons that iOS
+            // keeps for its home bar -- no use for a control, since a press
+            // there can be taken for the swipe home, but room for a line of
+            // small print. On a phone without that strip, just above the
+            // readouts instead, with MapKit's Legal link lifted over it:
+            // beside it, the two would collide wherever the word for "Legal"
+            // runs long, and MapKit does not say how long.
+            Text(EsriTileOverlay.credit)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.white.opacity(0.85))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(Color.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 3))
+                .frame(height: Self.creditHeight)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .padding(.leading, 6)
+                .padding(.trailing, creditInStrip ? edges.trailing : edges.trailing + (aglUp ? Self.aglWidth + 6 : 0))
+                .padding(.bottom, creditInStrip
+                    ? max(1, (bottomPadding - Self.creditHeight) / 2)
+                    : bottomPadding + bottomStackHeight + 4)
+                .allowsHitTesting(false)
+
+            // Under the map buttons, at the right-hand end of their row and
+            // half as wide: at the row's full width it hid too much of the
+            // map. Outside the controls' own stack, and beneath it, so a panel
+            // slid up from the bottom covers it rather than being squeezed by it.
+            TerrainRadarView(radar: model.terrain, size: Self.radarSide)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.top, Self.radarTop)
+                .padding(.trailing, edges.trailing)
+
+            // Live AGL, the ground along the track: as wide as the row of
+            // buttons, in the desktop's proportions, and flush with the
+            // LAT / LON box's right-hand edge. It comes and goes with the
+            // ground to draw, as on the desktop.
+            if aglFits {
+                AglProfileView(radar: model.terrain, width: Self.aglWidth)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .padding(.bottom, aglLift)
+                    .padding(.trailing, edges.trailing)
+            }
+
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top, spacing: 6) {
                     LinkChip(vehicle: model.vehicle, config: model.form.config) { showConnection = true }
                     ModeChip(vehicle: model.vehicle)
                     Spacer(minLength: 0)
                     mapButtons
+                }
+                // Under the connection box. Along the foot of the map it took
+                // its place in the stack there, and everything above it moved
+                // up as it came and moved back as it went.
+                if let target = model.flyTarget, !model.flyTargetSent {
+                    FlyHereBar(target: target, enabled: model.vehicle.heard) {
+                        askFlyAltitude = true
+                    } onClear: {
+                        model.clearFlyTarget()
+                    }
                 }
                 Spacer(minLength: 0)
                 bottomStack
@@ -111,11 +195,27 @@ struct MainScreen: View {
             .padding(.top, 6)
             .padding(.leading, 6)
             .padding(.trailing, edges.trailing)
-            // Level with the bottom of the data field, down over the home
-            // indicator's strip; the bottom edge's swipe is deferred, so the
-            // buttons there are safe from it.
-            .padding(.bottom, 6)
+            .padding(.bottom, bottomPadding)
         }
+    }
+
+    /// Five buttons and the gaps between them.
+    private static let mapButtonsWidth = 5 * MapIconButton.side + 4 * 6
+    private static let radarSide = mapButtonsWidth / 2
+    /// Just below the row of buttons.
+    private static let radarTop = 6 + MapIconButton.side + 6
+    private static let aglWidth = mapButtonsWidth
+    /// ESRI's credit line: nine-point type and its backing.
+    private static let creditHeight: CGFloat = 13
+
+    /// The instruments along the map's right-hand edge, for Follow to keep
+    /// the aircraft clear of: the radar, and Live AGL while it is up.
+    private func cornerBlocks(aglTop: CGFloat?) -> [MapCover.Block] {
+        var blocks = [MapCover.Block(width: Self.radarSide, height: Self.radarSide, top: Self.radarTop)]
+        if let aglTop {
+            blocks.append(MapCover.Block(width: Self.aglWidth, height: AglProfileView.height(for: Self.aglWidth), top: aglTop))
+        }
+        return blocks
     }
 
     private var mapButtons: some View {
@@ -129,6 +229,9 @@ struct MainScreen: View {
             MapIconButton(icon: "arrow.up.right", active: showVectors, label: "Vectors") {
                 showVectors.toggle()
             }
+            MapIconButton(icon: "cloud.rain", active: model.weather.enabled, label: "Weather") {
+                model.weather.enabled.toggle()
+            }
             MapIconButton(icon: "scribble", active: false, label: "Clear trail") {
                 model.clearTrail()
             }
@@ -138,14 +241,7 @@ struct MainScreen: View {
     @ViewBuilder
     private var bottomStack: some View {
         VStack(spacing: 6) {
-            if let target = model.flyTarget, !model.flyTargetSent {
-                FlyHereBar(target: target, enabled: model.vehicle.heard) {
-                    askFlyAltitude = true
-                } onClear: {
-                    model.clearFlyTarget()
-                }
-                .frame(maxWidth: .infinity)
-            }
+            MapReadouts(vehicle: model.vehicle)
             switch panel {
             case .modes:
                 ModePanel { panel = nil }
@@ -196,7 +292,10 @@ private struct LinkChip: View {
         guard vehicle.linkOpen else { return "Not connected" }
         guard vehicle.heard else { return "\(config.description) · waiting" }
         let link = vehicle.link
-        var parts = [config.description, "\(link.rxBytesPerSec) B/s"]
+        // Just the kind of link once a vehicle is heard: the address has
+        // done its job, it is in the connection panel, and the row across
+        // the top of the map has room for the figures or the address, not both.
+        var parts = [config.type == .tcp ? "TCP" : "UDP", "\(link.rxBytesPerSec) B/s"]
         if let loss = link.lossPercent {
             parts.append(String(format: "%.1f%%", loss))
         }
@@ -232,6 +331,8 @@ private struct ModeChip: View {
 /// translucent like the attribution, lit in the panel's green while it is
 /// doing something.
 private struct MapIconButton: View {
+    static let side: CGFloat = 32
+
     let icon: String
     let active: Bool
     let label: String
@@ -242,12 +343,66 @@ private struct MapIconButton: View {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(active ? Palette.onGreen : .white.opacity(0.9))
-                .frame(width: 32, height: 32)
+                .frame(width: Self.side, height: Self.side)
                 .background(active ? Palette.green : Palette.mapChip, in: RoundedRectangle(cornerRadius: controlCorner))
                 .overlay(RoundedRectangle(cornerRadius: controlCorner).stroke(.white.opacity(0.25), lineWidth: 1))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+}
+
+/// ETA to WP and the aircraft's position, in one row along the foot of the
+/// map rather than stacked, so the map keeps its height on a phone: the ETA
+/// at the left, where the desktop and the Android build keep it, and the
+/// position held to the right-hand end.
+private struct MapReadouts: View {
+    let vehicle: VehicleState
+
+    var body: some View {
+        HStack(spacing: 6) {
+            // Always up, and dashed when there is no arrival to time. A box
+            // that came and went would look like a fault, and its absence
+            // could not be told from a reading of nothing.
+            HStack(spacing: 0) {
+                Text("ETA to WP : ")
+                Text(Eta.text(vehicle))
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+            }
+            .foregroundStyle(Palette.mapReadout)
+            .readoutBox()
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 14) {
+                coordinate("LAT", vehicle.lat)
+                coordinate("LON", vehicle.lon)
+            }
+            .readoutBox()
+        }
+        .font(.system(size: 11))
+    }
+
+    private func coordinate(_ label: String, _ value: Double?) -> some View {
+        HStack(spacing: 5) {
+            Text(label)
+                .foregroundStyle(Palette.onSurfaceVariant)
+            Text(value.map { String(format: "%.6f", $0) } ?? "--")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Palette.onSurface)
+        }
+    }
+}
+
+private extension View {
+    /// The ground the map's readouts share: dark enough to read over any
+    /// imagery, with the Android build's small corner.
+    func readoutBox() -> some View {
+        lineLimit(1)
+            .padding(.horizontal, 8)
+            .frame(height: 24)
+            .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 4))
     }
 }
 

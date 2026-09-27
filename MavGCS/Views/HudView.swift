@@ -42,6 +42,16 @@ struct HudView: View {
                     .padding(.top, Hud.headingStripHeight + Hud.cornerInset)
                     .frame(maxWidth: .infinity, alignment: .topTrailing)
 
+                // Mission Planner's own convention, as on the desktop: bottom
+                // middle, EKF left of centre and VIBE right of it, just the
+                // coloured word and no value.
+                HStack(spacing: 4) {
+                    StatusWord(label: "EKF", tint: vehicle.ekfTint, compact: compact)
+                    StatusWord(label: "VIBE", tint: vehicle.vibeTint, compact: compact)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .padding(.bottom, compact ? 3 : 5)
+
                 // Full white: these name the tapes, so they read at a glance
                 // even though the sliding numbers beside them are faint.
                 VStack {
@@ -267,6 +277,34 @@ private struct HudDrawing {
         context.fill(Path(box), with: .color(.black))
         context.stroke(Path(box), with: .color(Palette.hudYellow), lineWidth: 1.2)
         context.draw(label(text), at: CGPoint(x: box.midX, y: box.midY), anchor: .center)
+    }
+}
+
+/// One of the HUD's two status words, in the desktop's colours.
+///
+/// White is the quiet state, and also what shows before any report has
+/// arrived: the word is always there, so its going missing could never be
+/// mistaken for good news.
+private struct StatusWord: View {
+    let label: String
+    let tint: HealthTint?
+    let compact: Bool
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: compact ? 7 : 8, weight: .bold))
+            .foregroundStyle(color)
+            .frame(width: compact ? 40 : 44, height: compact ? 13 : 15)
+            .background(Color(.sRGB, red: 15 / 255, green: 15 / 255, blue: 15 / 255, opacity: 210 / 255))
+            .overlay(Rectangle().stroke(Color.white, lineWidth: 1))
+    }
+
+    private var color: Color {
+        switch tint {
+        case .red: return Color(hex: 0xFF3C3C)
+        case .yellow: return Color(hex: 0xFFFF00)
+        case .white, nil: return .white
+        }
     }
 }
 
