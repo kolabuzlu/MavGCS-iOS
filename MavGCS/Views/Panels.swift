@@ -21,7 +21,7 @@ struct ModePanel: View {
                             label: button.label,
                             active: vehicle.mode == button.mode,
                             pending: vehicle.modePending == button.mode,
-                            enabled: vehicle.heard,
+                            enabled: vehicle.canCommand,
                             alert: button.label == "RTL"
                         ) {
                             model.setMode(button)
@@ -80,7 +80,7 @@ struct GuidedPanel: View {
                         label: guided.label,
                         active: vehicle.mode == guided.mode,
                         pending: vehicle.modePending == guided.mode,
-                        enabled: vehicle.heard
+                        enabled: vehicle.canCommand
                     ) {
                         model.setMode(guided)
                     }
@@ -96,7 +96,7 @@ struct GuidedPanel: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .buttonStyle(PanelButtonStyle(fill: Palette.blue, ink: .white, bordered: false))
-                .disabled(!vehicle.heard)
+                .disabled(!vehicle.canCommand)
                 // Two units wide, filling the space the row would otherwise leave.
                 .layoutPriority(1)
             }
@@ -152,7 +152,7 @@ struct GuidedPanel: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .buttonStyle(PanelButtonStyle())
-        .disabled(!model.vehicle.heard)
+        .disabled(!model.vehicle.canCommand)
     }
 
     private func send(_ value: GuidedValue) {

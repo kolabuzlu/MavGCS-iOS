@@ -138,6 +138,9 @@ public final class MavlinkClient: @unchecked Sendable {
     /// on a routed network with more than one airframe, system 1 is
     /// somebody, and not necessarily the aircraft in front of the pilot.
     private var target: (system: UInt8, component: UInt8)?
+    /// The autopilot's own clock at its latest ATTITUDE, for noticing that it
+    /// has restarted.
+    private var lastBootMs: UInt32?
     private var timer: DispatchSourceTimer?
     private var openedAt = 0.0
     private var silenceReported = false
@@ -223,6 +226,7 @@ public final class MavlinkClient: @unchecked Sendable {
             counter.reset()
             parser = FrameParser()
             target = nil
+            lastBootMs = nil
             modeWanted = nil
             awaited = [:]
             paramAwaited = nil
@@ -261,6 +265,7 @@ public final class MavlinkClient: @unchecked Sendable {
             // that drops and is redialled, which is the normal life of an
             // LTE modem, that is the reconnect quietly going back to flooding.
             target = nil
+            lastBootMs = nil
             modeWanted = nil
             awaited = [:]
             paramAwaited = nil
@@ -448,7 +453,15 @@ public final class MavlinkClient: @unchecked Sendable {
     private func ended(_ failure: LinkFailure, session: Int) {
         guard session == self.session, transport != nil else { return }
         closeTransport()
+        // Nothing can be sent now, so nothing may be asked for: a mode
+        // pressed from here on would sit "pending" with no timer left to
+        // resend it or give up on it. The vehicle's last frame stays up,
+        // which is how a lost aircraft is found.
+        target = nil
+        lastBootMs = nil
         modeWanted = nil
+        awaited = [:]
+        paramAwaited = nil
         state.linkOpen = false
         state.linkUp = false
         state.modePending = nil
@@ -571,6 +584,22 @@ public final class MavlinkClient: @unchecked Sendable {
     /// messages back on air. The Android build sent it second for a while,
     /// which is why its rate settings appeared to do nothing on a fresh
     /// connection.
+    /// Sets the streams up again when the autopilot restarts under a link
+    /// that stays up -- a battery swap behind a bridge left powered on the
+    /// ground. A restarted autopilot has forgotten every rate it was given,
+    /// and ArduPlane comes back sending all its streams at the rate saved
+    /// from the first request, which floods a slow radio; the regular home
+    /// position request is gone too. Its clock running backwards is the
+    /// sign: a few seconds of slack allows for frames arriving out of order.
+    private func noteBootTime(_ bootMs: UInt32, from frame: MavlinkFrame) {
+        guard let target, frame.componentId == target.component else { return }
+        if let last = lastBootMs, last > bootMs, last - bootMs > 3000 {
+            note("The vehicle restarted. Asking for its telemetry again.")
+            setUpStreams(firmware: state.firmware)
+        }
+        lastBootMs = bootMs
+    }
+
     private func setUpStreams(firmware: Firmware) {
         guard let target else { return }
         transmit(RequestDataStream(
@@ -746,11 +775,12 @@ public final class MavlinkClient: @unchecked Sendable {
 
         switch packet.message {
         case let m as Attitude:
-            state.rollDeg = m.roll * 180 / .pi
-            state.pitchDeg = m.pitch * 180 / .pi
+            noteBootTime(m.timeBootMs, from: frame)
+            state.rollDeg = Self.finite(m.roll).map { $0 * 180 / .pi }
+            state.pitchDeg = Self.finite(m.pitch).map { $0 * 180 / .pi }
             // Arrives in -pi...pi; stored as a compass bearing like heading.
-            state.yawDeg = Geo.normaliseBearing(m.yaw * 180 / .pi)
-            state.yawRateDegSec = m.yawspeed * 180 / .pi
+            state.yawDeg = Self.finite(m.yaw).map { Geo.normaliseBearing($0 * 180 / .pi) }
+            state.yawRateDegSec = (Self.finite(m.yawspeed) ?? 0) * 180 / .pi
 
         case let m as GlobalPositionInt:
             let lat = Double(m.lat) / 1e7
@@ -781,12 +811,15 @@ public final class MavlinkClient: @unchecked Sendable {
             }
 
         case let m as VfrHud:
-            state.airSpeedMs = m.airspeed
-            state.groundSpeedMs = m.groundspeed
+            // PX4 sends NaN airspeed whenever it has no airspeed sensor --
+            // every multicopter and rover -- and a NaN handed on is a crash
+            // wherever it is turned into a whole number for the screen.
+            state.airSpeedMs = Self.finite(m.airspeed)
+            state.groundSpeedMs = Self.finite(m.groundspeed)
             state.headingDeg = Float(m.heading)
             state.throttlePct = Int(m.throttle)
-            state.altMslM = m.alt
-            state.climbMs = m.climb
+            state.altMslM = Self.finite(m.alt)
+            state.climbMs = Self.finite(m.climb)
 
         case let m as RcChannels:
             // 0...254, with 255 meaning nothing to report -- not the same as
@@ -807,6 +840,11 @@ public final class MavlinkClient: @unchecked Sendable {
             state.batteryRemainingPct = (0...100).contains(m.batteryRemaining) ? Int(m.batteryRemaining) : nil
 
         case let m as BatteryStatus:
+            // One pack only: the primary, which SYS_STATUS also reports.
+            // ArduPilot takes turns sending each monitor's BATTERY_STATUS,
+            // numbered from 0, and a second pack's figures written over the
+            // first would have the HUD jump between two batteries.
+            guard m.id == 0 else { break }
             if (0...100).contains(m.batteryRemaining) {
                 state.batteryRemainingPct = Int(m.batteryRemaining)
             }
@@ -842,8 +880,8 @@ public final class MavlinkClient: @unchecked Sendable {
         case let m as Wind:
             // ArduPilot wraps this to -180...180, so a westerly reads -13
             // rather than 347.
-            state.windDirectionDeg = Geo.normaliseBearing(m.direction)
-            state.windSpeedMs = m.speed
+            state.windDirectionDeg = Self.finite(m.direction).map(Geo.normaliseBearing)
+            state.windSpeedMs = Self.finite(m.speed)
 
         case let m as Rangefinder:
             state.rangefinderM = m.distance
@@ -861,7 +899,13 @@ public final class MavlinkClient: @unchecked Sendable {
             state.qnhHpa = Geo.qnh(pressAbsHpa: m.pressAbs, altMslM: state.altMslM)
 
         case let m as TerrainReport:
-            state.terrainAltM = m.terrainHeight
+            // Spacing 0 means the aircraft holds no terrain data -- no card,
+            // no tiles for here, or the feature off -- and its heights are
+            // then zeros that only look like readings. The desktop checks
+            // the same.
+            if m.spacing > 0 {
+                state.terrainAltM = Self.finite(m.terrainHeight)
+            }
 
         case let m as EkfStatusReport:
             // Judged against the fix type as it stands when the report
@@ -968,7 +1012,15 @@ public final class MavlinkClient: @unchecked Sendable {
 
     /// Metres, without a trailing zero nobody needs.
     static func round(_ value: Float) -> String {
-        abs(value - value.rounded()) < 0.05 ? String(Int(value.rounded())) : String(format: "%.1f", value)
+        // Int() traps past its range, and a pasted run of digits gets there.
+        guard value.isFinite, abs(value) < 1e9 else { return String(format: "%g", value) }
+        return abs(value - value.rounded()) < 0.05 ? String(Int(value.rounded())) : String(format: "%.1f", value)
+    }
+
+    /// A reading, or nil for the NaN and infinity some firmware sends for
+    /// "not known".
+    static func finite(_ value: Float) -> Float? {
+        value.isFinite ? value : nil
     }
 
     /// The vehicle's own STATUSTEXT. ArduPilot splits a long message across

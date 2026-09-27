@@ -122,7 +122,13 @@ struct LinkStats {
     /// Roll the one-second window if it has elapsed, and return the latest.
     mutating func sample(now: Double) -> LinkQuality {
         if windowStart == 0 {
+            // The first window starts here, not at connect: counting what
+            // arrived before it would put two seconds of traffic over one.
             windowStart = now
+            rxBytes = 0
+            txBytes = 0
+            rxCount = 0
+            txCount = 0
             return snapshot
         }
         let elapsed = now - windowStart

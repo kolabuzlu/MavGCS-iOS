@@ -226,6 +226,12 @@ struct VehicleMapView: UIViewRepresentable {
                 position = CLLocationCoordinate2D(latitude: lat, longitude: lon)
             }
             if parent.weatherVersion != drawnWeatherVersion {
+                // New tiles with nowhere yet to centre them -- just
+                // reconnected, or the GPS still finding itself after a
+                // battery swap -- wait for a position rather than being
+                // counted as drawn: nothing new would come to draw them
+                // later, and the radar would sit blank with its button lit.
+                if !parent.weatherTiles.isEmpty && position == nil { return }
                 drawnWeatherVersion = parent.weatherVersion
                 if let old = weatherOverlay {
                     map.removeOverlay(old)

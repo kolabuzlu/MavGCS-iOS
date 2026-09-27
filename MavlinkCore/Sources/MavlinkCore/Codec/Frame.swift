@@ -121,9 +121,13 @@ public struct FrameParser: Sendable {
         }
         guard let type = MavlinkRegistry.types[messageId] else { return .notAFrame }
         // MAVLink 1 always carries exactly the base fields. MAVLink 2 may
-        // carry the extensions, and may cut trailing zeros, but never more
-        // than the whole message.
-        if v2 ? length > type.maxLength : length != type.minLength { return .notAFrame }
+        // carry the extensions, and may cut trailing zeros -- and may carry
+        // extensions added to the message since these definitions were
+        // generated, which the protocol says a receiver reads past: PX4 has
+        // sent a longer SYS_STATUS than this build knows since 1.14. The
+        // checksum covers whatever arrived, and the fields known here are
+        // read from the front of it.
+        if !v2 && length != type.minLength { return .notAFrame }
 
         let total = header + length + Wire.checksum + (signed ? Wire.signature : 0)
         guard available >= total else { return .needMore }

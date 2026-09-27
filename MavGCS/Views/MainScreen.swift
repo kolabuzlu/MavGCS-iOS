@@ -92,7 +92,10 @@ struct MainScreen: View {
         // there is.
         let aglLift = bottomPadding + bottomStackHeight + 6
         let aglTop = height - aglLift - AglProfileView.height(for: sizes.aglWidth)
-        let aglFits = aglTop >= compassTop + sizes.compass + 6
+        // At rest the two sides are equal by construction -- the sizes are
+        // chosen to fill exactly this height -- so a hair of slack keeps the
+        // rounding of the arithmetic from deciding whether it shows.
+        let aglFits = aglTop >= compassTop + sizes.compass + 6 - 0.5
         let aglUp = aglFits && model.terrain.aglShown
         return ZStack(alignment: .topLeading) {
             VehicleMapView(
@@ -117,8 +120,9 @@ struct MainScreen: View {
                 ),
                 onTap: { point in
                     // Nothing to send it to until a vehicle has been heard,
-                    // and a pin that cannot be flown to only misleads.
-                    guard model.vehicle.heard else { return }
+                    // or once its link has gone, and a pin that cannot be
+                    // flown to only misleads.
+                    guard model.vehicle.canCommand else { return }
                     panel = nil
                     model.flyTarget = point
                     model.flyTargetSent = false
@@ -199,7 +203,7 @@ struct MainScreen: View {
                 // took its place in the stack there, and everything above it
                 // moved up as it came and moved back as it went.
                 if let target = model.flyTarget, !model.flyTargetSent {
-                    FlyHereBar(target: target, enabled: model.vehicle.heard) {
+                    FlyHereBar(target: target, enabled: model.vehicle.canCommand) {
                         askFlyAltitude = true
                     } onClear: {
                         model.clearFlyTarget()
@@ -564,7 +568,7 @@ private struct ActionBar: View {
                 label: vehicle.armed ? "ARMED" : (vehicle.readyToArm ? "ARM" : "NOT READY"),
                 labelPrefix: !vehicle.armed && vehicle.readyToArm ? "READY TO" : nil,
                 holdLabel: "FORCE…",
-                enabled: vehicle.heard,
+                enabled: vehicle.canCommand,
                 fill: vehicle.armed
                     ? Palette.green
                     : (vehicle.readyToArm ? Palette.green : Palette.amber).mixed(over: Palette.surfaceVariant, amount: Palette.armStateTint),
@@ -579,7 +583,7 @@ private struct ActionBar: View {
             HoldButton(
                 label: vehicle.armed ? "DISARM" : "DISARMED",
                 holdLabel: "HOLD…",
-                enabled: vehicle.heard,
+                enabled: vehicle.canCommand,
                 fill: vehicle.armed ? Palette.surfaceVariant : Palette.red,
                 ink: vehicle.armed ? Palette.onSurface : .white,
                 bordered: vehicle.armed,

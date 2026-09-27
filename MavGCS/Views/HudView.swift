@@ -153,6 +153,9 @@ private struct HudDrawing {
         let centerY = size.height / 2
         context.fill(Path(CGRect(x: left, y: 0, width: width, height: size.height)), with: .color(Palette.tape))
 
+        // A reading that is not a number is no reading. Turned into a whole
+        // number for the pointer box, NaN would bring the app down.
+        let value = value.flatMap { $0.isFinite ? $0 : nil }
         let current = CGFloat(value ?? 0)
         let halfSpan = centerY / perUnit
         var tick = ((current - halfSpan) / tickStep).rounded(.down) * tickStep

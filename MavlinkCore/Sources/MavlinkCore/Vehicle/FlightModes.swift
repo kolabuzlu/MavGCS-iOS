@@ -52,11 +52,16 @@ public struct ModeRequest: Sendable, Equatable {
 }
 
 public enum FlightModes {
+    // ArduCopter's mode.h. 25 is SYSTEMID, not AUTO_RTL -- a mistake carried
+    // over from the Android build -- and AUTO_RTL, 27, is what AUTO reports
+    // while flying a DO_LAND_START landing.
     private static let copter: [UInt32: String] = [
         0: "STABILIZE", 1: "ACRO", 2: "ALT_HOLD", 3: "AUTO", 4: "GUIDED",
         5: "LOITER", 6: "RTL", 7: "CIRCLE", 9: "LAND", 11: "DRIFT",
         13: "SPORT", 14: "FLIP", 15: "AUTOTUNE", 16: "POSHOLD", 17: "BRAKE",
-        18: "THROW", 21: "SMART_RTL", 25: "AUTO_RTL",
+        18: "THROW", 19: "AVOID_ADSB", 20: "GUIDED_NOGPS", 21: "SMART_RTL",
+        22: "FLOWHOLD", 23: "FOLLOW", 24: "ZIGZAG", 25: "SYSTEMID",
+        26: "AUTOROTATE", 27: "AUTO_RTL", 28: "TURTLE",
     ]
 
     private static let plane: [UInt32: String] = [

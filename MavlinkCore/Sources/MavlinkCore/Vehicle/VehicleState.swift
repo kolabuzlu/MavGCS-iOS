@@ -113,6 +113,11 @@ public struct VehicleState: Sendable, Equatable {
     /// is anything to send to.
     public var heard: Bool { systemId != 0 }
 
+    /// A vehicle has been heard and the link to it is still open, so a
+    /// command has somewhere to go. Heard alone stays true after the link
+    /// ends, since the last frame is kept on screen.
+    public var canCommand: Bool { heard && linkOpen }
+
     public var kind: VehicleKind { VehicleKind(vehicleType: vehicleType) }
 
     /// The autopilot's own pre-arm checks pass, so an arm would be accepted.

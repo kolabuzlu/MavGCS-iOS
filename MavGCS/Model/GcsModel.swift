@@ -111,6 +111,9 @@ final class GcsModel {
     func setLoiterRadius(_ meters: Float) { client.setLoiterRadius(meters) }
 
     func flyTo(_ target: CLLocationCoordinate2D, altitudeM: Float) {
+        // With the link gone nothing would go, so the point is not marked
+        // as flown to.
+        guard vehicle.canCommand else { return }
         client.flyTo(lat: target.latitude, lon: target.longitude, altitudeM: altitudeM)
         flyTarget = target
         flyTargetSent = true

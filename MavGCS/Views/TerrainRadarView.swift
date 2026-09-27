@@ -88,9 +88,12 @@ struct TerrainRadarView: View {
         }
     }
 
-    /// "120", "120m" and " 120 m" alike, as the desktop takes them.
+    /// "120", "120m" and " 120 m" alike, as the desktop takes them -- and
+    /// "120,5" as 120.5: where a comma is the decimal mark, the number pad
+    /// has no other.
     private func applyScale() {
-        guard let value = Float(scaleText.filter { $0.isNumber || $0 == "." }), value > 0 else { return }
+        let typed = scaleText.replacingOccurrences(of: ",", with: ".").filter { $0.isNumber || $0 == "." }
+        guard let value = Float(typed), value > 0 else { return }
         radar.scaleM = min(max(value, TerrainClearance.scaleMinM), TerrainClearance.scaleMaxM)
     }
 
