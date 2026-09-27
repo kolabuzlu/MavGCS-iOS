@@ -83,12 +83,12 @@ struct MainScreen: View {
     private func mapArea(height: CGFloat) -> some View {
         // Live AGL sits just above the LAT / LON box, at the right-hand end of
         // the readouts along the foot of the map, and rises with them when
-        // something opens below. Only while it fits under the radar: with a
-        // panel up there is no room left for it, and it steps aside until
-        // there is.
+        // something opens below. Only while it fits under the radar, or
+        // under the buttons with the radar off: with a panel up there is no
+        // room left for it, and it steps aside until there is.
         let aglLift = bottomPadding + bottomStackHeight + 6
         let aglTop = height - aglLift - AglProfileView.height(for: Self.aglWidth)
-        let aglFits = aglTop >= Self.radarTop + Self.radarSide + 6
+        let aglFits = aglTop >= (model.terrain.showsRadar ? Self.radarTop + Self.radarSide + 6 : Self.radarTop)
         let aglUp = aglFits && model.terrain.aglShown
         return ZStack(alignment: .topLeading) {
             VehicleMapView(
@@ -147,19 +147,19 @@ struct MainScreen: View {
                     : bottomPadding + bottomStackHeight + 4)
                 .allowsHitTesting(false)
 
-            // Under the map buttons, at the right-hand end of their row and
-            // half as wide: at the row's full width it hid too much of the
-            // map. Outside the controls' own stack, and beneath it, so a panel
-            // slid up from the bottom covers it rather than being squeezed by it.
-            TerrainRadarView(radar: model.terrain, size: Self.radarSide)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(.top, Self.radarTop)
-                .padding(.trailing, edges.trailing)
+            // Under the map buttons, at the right-hand end of their row. Outside
+            // the controls' own stack, and beneath it, so a panel slid up from
+            // the bottom covers it rather than being squeezed by it.
+            if model.terrain.showsRadar {
+                TerrainRadarView(radar: model.terrain, size: Self.radarSide)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(.top, Self.radarTop)
+                    .padding(.trailing, edges.trailing)
+            }
 
-            // Live AGL, the ground along the track: as wide as the row of
-            // buttons, in the desktop's proportions, and flush with the
-            // LAT / LON box's right-hand edge. It comes and goes with the
-            // ground to draw, as on the desktop.
+            // Live AGL, the ground along the track, in the desktop's
+            // proportions and flush with the LAT / LON box's right-hand edge.
+            // It comes and goes with the ground to draw, as on the desktop.
             if aglFits {
                 AglProfileView(radar: model.terrain, width: Self.aglWidth)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -199,19 +199,25 @@ struct MainScreen: View {
         }
     }
 
-    /// Five buttons and the gaps between them.
-    private static let mapButtonsWidth = 5 * MapIconButton.side + 4 * 6
-    private static let radarSide = mapButtonsWidth / 2
+    /// The width the radar and Live AGL were sized against: the row of map
+    /// buttons as it stood then, five buttons and the gaps between them.
+    /// Live AGL is that wide; the radar, at its row's full width, hid too
+    /// much of the map, and is half.
+    private static let instrumentWidth = 5 * MapIconButton.side + 4 * 6
+    private static let radarSide = instrumentWidth / 2
+    private static let aglWidth = instrumentWidth
     /// Just below the row of buttons.
     private static let radarTop = 6 + MapIconButton.side + 6
-    private static let aglWidth = mapButtonsWidth
     /// ESRI's credit line: nine-point type and its backing.
     private static let creditHeight: CGFloat = 13
 
     /// The instruments along the map's right-hand edge, for Follow to keep
     /// the aircraft clear of: the radar, and Live AGL while it is up.
     private func cornerBlocks(aglTop: CGFloat?) -> [MapCover.Block] {
-        var blocks = [MapCover.Block(width: Self.radarSide, height: Self.radarSide, top: Self.radarTop)]
+        var blocks: [MapCover.Block] = []
+        if model.terrain.showsRadar {
+            blocks.append(MapCover.Block(width: Self.radarSide, height: Self.radarSide, top: Self.radarTop))
+        }
         if let aglTop {
             blocks.append(MapCover.Block(width: Self.aglWidth, height: AglProfileView.height(for: Self.aglWidth), top: aglTop))
         }
@@ -235,7 +241,17 @@ struct MainScreen: View {
             MapIconButton(icon: "scribble", active: false, label: "Clear trail") {
                 model.clearTrail()
             }
+            // The fan opening upwards, as the radar draws it; the ground seen
+            // side-on, as Live AGL does.
+            MapIconButton(glyph: .radarFan, active: model.terrain.showsRadar, label: "Terrain radar") {
+                model.terrain.showsRadar.toggle()
+            }
+            MapIconButton(icon: "mountain.2", active: model.terrain.showsAgl, label: "Live AGL") {
+                model.terrain.showsAgl.toggle()
+            }
         }
+        // Never squeezed: the chips beside them give way first.
+        .fixedSize()
     }
 
     @ViewBuilder
@@ -267,7 +283,7 @@ private struct LinkChip: View {
         Button(action: action) {
             HStack(spacing: 5) {
                 Circle().fill(dotColor).frame(width: 8, height: 8)
-                Text(text)
+                label
                     .font(.system(size: 11, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(Palette.mapReadout)
@@ -288,18 +304,27 @@ private struct LinkChip: View {
         return Palette.red
     }
 
-    private var text: String {
-        guard vehicle.linkOpen else { return "Not connected" }
-        guard vehicle.heard else { return "\(config.description) · waiting" }
-        let link = vehicle.link
-        // Just the kind of link once a vehicle is heard: the address has
-        // done its job, it is in the connection panel, and the row across
-        // the top of the map has room for the figures or the address, not both.
-        var parts = [config.type == .tcp ? "TCP" : "UDP", "\(link.rxBytesPerSec) B/s"]
-        if let loss = link.lossPercent {
-            parts.append(String(format: "%.1f%%", loss))
+    /// Once a vehicle is heard, just the kind of link and how much of it is
+    /// being lost: the address has done its job and is in Settings, and the
+    /// byte rate says less about a link's health than its loss does. The
+    /// loss sits in a slot as wide as its widest reading, so the chip holds
+    /// its size as the figure comes and goes rather than nudging the row.
+    @ViewBuilder
+    private var label: some View {
+        if !vehicle.linkOpen {
+            Text("Not connected")
+        } else if !vehicle.heard {
+            Text("\(config.description) · waiting")
+        } else {
+            HStack(spacing: 0) {
+                Text(config.type == .tcp ? "TCP · " : "UDP · ")
+                Text(verbatim: "100.0%")
+                    .hidden()
+                    .overlay(alignment: .leading) {
+                        Text(verbatim: vehicle.link.lossPercent.map { String(format: "%.1f%%", $0) } ?? "--")
+                    }
+            }
         }
-        return parts.joined(separator: " · ")
     }
 }
 
@@ -333,15 +358,43 @@ private struct ModeChip: View {
 private struct MapIconButton: View {
     static let side: CGFloat = 32
 
-    let icon: String
+    enum Glyph {
+        case symbol(String)
+        /// The terrain radar's own fan. No symbol says terrain radar, and
+        /// the nearest, a fan of arcs, reads as Wi-Fi.
+        case radarFan
+    }
+
+    let glyph: Glyph
     let active: Bool
     let label: String
     let action: () -> Void
 
+    init(icon: String, active: Bool, label: String, action: @escaping () -> Void) {
+        self.init(glyph: .symbol(icon), active: active, label: label, action: action)
+    }
+
+    init(glyph: Glyph, active: Bool, label: String, action: @escaping () -> Void) {
+        self.glyph = glyph
+        self.active = active
+        self.label = label
+        self.action = action
+    }
+
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
+            Group {
+                switch glyph {
+                case .symbol(let name):
+                    Image(systemName: name)
+                        .font(.system(size: 14, weight: .semibold))
+                case .radarFan:
+                    // Stroked about as heavily as a semibold symbol at 14.
+                    RadarFanGlyph()
+                        .stroke(style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+                        .frame(width: 18, height: 12)
+                }
+            }
                 .foregroundStyle(active ? Palette.onGreen : .white.opacity(0.9))
                 .frame(width: Self.side, height: Self.side)
                 .background(active ? Palette.green : Palette.mapChip, in: RoundedRectangle(cornerRadius: controlCorner))
@@ -349,6 +402,26 @@ private struct MapIconButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+}
+
+/// The terrain radar's fan, drawn as the radar draws it: a 120 degree sector
+/// opening upwards from the aircraft, with a range arc inside.
+private struct RadarFanGlyph: Shape {
+    func path(in rect: CGRect) -> Path {
+        let apex = CGPoint(x: rect.midX, y: rect.maxY)
+        let half = Angle.degrees(60)
+        let radius = min(rect.width / 2 / sin(half.radians), rect.height)
+        let left = Angle.degrees(-90) - half
+        let right = Angle.degrees(-90) + half
+        var path = Path()
+        path.move(to: apex)
+        path.addArc(center: apex, radius: radius, startAngle: left, endAngle: right, clockwise: false)
+        path.closeSubpath()
+        let inner = radius / 2
+        path.move(to: CGPoint(x: apex.x + inner * cos(left.radians), y: apex.y + inner * sin(left.radians)))
+        path.addArc(center: apex, radius: inner, startAngle: left, endAngle: right, clockwise: false)
+        return path
     }
 }
 

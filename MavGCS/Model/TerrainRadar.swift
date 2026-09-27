@@ -50,9 +50,20 @@ final class TerrainRadar {
     /// Bumped whenever the track flown gains a point, so the panel can tell.
     private(set) var flownVersion = 0
 
-    /// Whether the Live AGL panel has anything to draw: some ground, and a
-    /// height to measure it from.
-    var aglShown: Bool { profile?.hasData == true && altMslM != nil }
+    /// The radar and the Live AGL panel, each switched on and off from its
+    /// own button over the map. Both start on. Switched back on, the ground
+    /// is read again at once rather than on the next stale tick, so the
+    /// picture that comes back is not an old one.
+    var showsRadar = true {
+        didSet { if showsRadar, !oldValue { sampled = nil } }
+    }
+    var showsAgl = true {
+        didSet { if showsAgl, !oldValue { sampled = nil } }
+    }
+
+    /// Whether the Live AGL panel is up: switched on, with some ground to
+    /// draw and a height to measure it from.
+    var aglShown: Bool { showsAgl && profile?.hasData == true && altMslM != nil }
 
     /// How much clearance the red to green ramp spans.
     var scaleM = TerrainClearance.defaultScaleM
@@ -139,9 +150,10 @@ final class TerrainRadar {
 
     private func sampleIfDue() async {
         let state = vehicle
-        // Track-up: the ground track is what the aircraft will actually
+        // Nothing to read the ground for with both of its panels switched
+        // off. Track-up: the ground track is what the aircraft will actually
         // cross, and it parts from the nose in any crosswind.
-        guard state.linkOpen,
+        guard showsRadar || showsAgl, state.linkOpen,
               let lat = state.lat, let lon = state.lon, lat != 0 || lon != 0,
               let heading = (state.groundCourseDeg ?? state.headingDeg).map(Double.init)
         else { return }
@@ -156,30 +168,35 @@ final class TerrainRadar {
             return
         }
 
-        // While there is nothing drawn, say what the reader is doing: the
-        // first fan over new ground can take a download or two.
-        let watch: Task<Void, Never>? = fan == nil ? Task { [weak self] in
-            while !Task.isCancelled {
-                let now = await CopernicusDEM.shared.activity
-                self?.show(now)
-                try? await Task.sleep(for: .milliseconds(250))
-            }
-        } : nil
-        let next = await CopernicusDEM.shared.fan(lat: lat, lon: lon, headingDeg: heading, rangeM: rangeM)
-        watch?.cancel()
-        let now = await CopernicusDEM.shared.activity
-        show(now)
+        if showsRadar {
+            // While there is nothing drawn, say what the reader is doing: the
+            // first fan over new ground can take a download or two.
+            let watch: Task<Void, Never>? = fan == nil ? Task { [weak self] in
+                while !Task.isCancelled {
+                    let now = await CopernicusDEM.shared.activity
+                    self?.show(now)
+                    try? await Task.sleep(for: .milliseconds(250))
+                }
+            } : nil
+            let next = await CopernicusDEM.shared.fan(lat: lat, lon: lon, headingDeg: heading, rangeM: rangeM)
+            watch?.cancel()
+            let now = await CopernicusDEM.shared.activity
+            show(now)
 
-        if next.hasData, next != fan {
-            fan = next
+            if next.hasData, next != fan {
+                fan = next
+            }
         }
 
         // Same pass, same reader, and mostly the same tiles the fan has just
         // read -- the track runs up the middle of it.
         let behind = rangeM * TerrainSampler.profileBehindFraction
-        let ground = await CopernicusDEM.shared.trackProfile(
-            lat: lat, lon: lon, headingDeg: heading, behindM: behind, aheadM: rangeM
-        )
+        var ground: [Float] = []
+        if showsAgl {
+            ground = await CopernicusDEM.shared.trackProfile(
+                lat: lat, lon: lon, headingDeg: heading, behindM: behind, aheadM: rangeM
+            )
+        }
         // Not if the link went while it was being read.
         if vehicle.linkOpen, !ground.isEmpty {
             let slice = AglProfile(elevations: ground, behindM: behind, aheadM: rangeM)

@@ -23,7 +23,7 @@ struct AglProfileView: View {
     var body: some View {
         // Read so the panel redraws as the track flown grows.
         let _ = radar.flownVersion
-        if let profile = radar.profile, let amsl = radar.altMslM,
+        if radar.showsAgl, let profile = radar.profile, let amsl = radar.altMslM,
            let picture = AglPicture(
                profile: profile,
                amslM: Double(amsl),
