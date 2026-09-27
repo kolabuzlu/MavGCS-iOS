@@ -214,8 +214,14 @@ struct MainScreen: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top, spacing: 6) {
+                    // On a narrow screen something has to give, and it is
+                    // never the flight mode: that is taken whole first, and
+                    // the connection box makes do with what is left.
                     LinkChip(vehicle: model.vehicle, config: model.form.config) { showConnection = true }
+                        .layoutPriority(1)
                     ModeChip(vehicle: model.vehicle)
+                        .fixedSize()
+                        .layoutPriority(2)
                     Spacer(minLength: 0)
                     mapButtons
                 }
@@ -356,20 +362,42 @@ private struct LinkChip: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 5) {
-                Circle().fill(dotColor).frame(width: 8, height: 8)
-                label
-                    .font(.system(size: 11, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.mapReadout)
-                    .lineLimit(1)
+            // As much as the row has room for: everything, then just the
+            // kind of link, then the dot alone.
+            ViewThatFits(in: .horizontal) {
+                chip { label }
+                chip { shortLabel }
+                chip { EmptyView() }
             }
-            .padding(.horizontal, 8)
-            .frame(height: 32)
-            .background(Palette.mapChip, in: RoundedRectangle(cornerRadius: controlCorner))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Connection")
+    }
+
+    private func chip(@ViewBuilder _ text: () -> some View) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(dotColor).frame(width: 8, height: 8)
+            text()
+                .font(.system(size: 11, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(Palette.mapReadout)
+                .lineLimit(1)
+                .fixedSize()
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 32)
+        .background(Palette.mapChip, in: RoundedRectangle(cornerRadius: controlCorner))
+    }
+
+    /// The label cut down to the kind of link -- DEMO stays in view on all
+    /// but the narrowest phones, where the row leaves room for the dot alone.
+    @ViewBuilder
+    private var shortLabel: some View {
+        if !vehicle.linkOpen {
+            Text("Off")
+        } else {
+            Text(Self.kind(config.type))
+        }
     }
 
     private static func kind(_ type: LinkType) -> String {
