@@ -110,10 +110,7 @@ struct VehicleMapView: UIViewRepresentable {
         map.register(PlaneMarkerView.self, forAnnotationViewWithReuseIdentifier: PlaneMarkerView.reuse)
         map.register(HomeMarkerView.self, forAnnotationViewWithReuseIdentifier: HomeMarkerView.reuse)
         map.register(TargetMarkerView.self, forAnnotationViewWithReuseIdentifier: TargetMarkerView.reuse)
-        map.setRegion(
-            MKCoordinateRegion(center: Coordinator.startCenter, latitudinalMeters: 8000, longitudinalMeters: 8000),
-            animated: false
-        )
+        context.coordinator.frameOpeningView(map)
 
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped(_:)))
         tap.delegate = context.coordinator
@@ -133,17 +130,22 @@ struct VehicleMapView: UIViewRepresentable {
             // does not always schedule one for a margin change.
             map.setNeedsLayout()
             // The middle has moved, so a followed aircraft goes to it now
-            // rather than whenever it next moves.
+            // rather than whenever it next moves -- and so does the opening
+            // view, while it is still the one showing.
             context.coordinator.recentre()
+            context.coordinator.frameOpeningView(map)
         }
         context.coordinator.update(map)
     }
 
     @MainActor
     final class Coordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
-        /// Ankara, where the desktop opens and the test aircraft flies,
-        /// until the vehicle says where it is.
-        static let startCenter = CLLocationCoordinate2D(latitude: 39.925386, longitude: 32.836524)
+        /// Where the map opens until an aircraft is seen: the point Derin
+        /// chose, in Ankara, where the desktop opens too.
+        static let openingCenter = CLLocationCoordinate2D(latitude: 39.9251229, longitude: 32.8367310)
+        /// Across the clear part of the map, in metres: the first fix's
+        /// framing, so the view does not jump when an aircraft appears.
+        static let framingMeters = 1500.0
 
         var parent: VehicleMapView
         var appliedMargins: UIEdgeInsets?
@@ -165,6 +167,10 @@ struct VehicleMapView: UIViewRepresentable {
         private var drawnWeatherVersion = -1
         private var weatherCentre: CLLocationCoordinate2D?
         private var framedFirstFix = false
+        /// The opening view is kept in the middle of the map's clear area
+        /// while the screen settles around it -- until the pilot moves the
+        /// map, or an aircraft is seen.
+        private var holdingOpeningView = true
         /// What the guides were last drawn from. State arrives up to twenty
         /// times a second, most of it about something else entirely, and
         /// four polylines rebuilt for nothing each time is waste.
@@ -179,6 +185,16 @@ struct VehicleMapView: UIViewRepresentable {
         /// even if it has not moved.
         func recentre() {
             centredOn = nil
+        }
+
+        /// The opening point in the middle of the clear area, as Follow puts
+        /// an aircraft there, at the first fix's framing.
+        func frameOpeningView(_ map: MKMapView) {
+            guard holdingOpeningView else { return }
+            map.setRegion(
+                MKCoordinateRegion(center: Self.openingCenter, latitudinalMeters: Self.framingMeters, longitudinalMeters: Self.framingMeters),
+                animated: false
+            )
         }
 
 
@@ -269,10 +285,14 @@ struct VehicleMapView: UIViewRepresentable {
             (map.view(for: plane) as? PlaneMarkerView)?.heading = CGFloat(heading)
 
             if !framedFirstFix {
-                // The first fix is worth a closer look than the starting view.
+                // The aircraft, framed as the opening view was.
                 framedFirstFix = true
+                holdingOpeningView = false
                 centredOn = position
-                map.setRegion(MKCoordinateRegion(center: position, latitudinalMeters: 1500, longitudinalMeters: 1500), animated: false)
+                map.setRegion(
+                    MKCoordinateRegion(center: position, latitudinalMeters: Self.framingMeters, longitudinalMeters: Self.framingMeters),
+                    animated: false
+                )
             } else if parent.follow {
                 // Only when the aircraft has actually moved: re-centring on
                 // the same point over and over makes the map shiver under a
@@ -381,8 +401,11 @@ struct VehicleMapView: UIViewRepresentable {
             // does not. Only a gesture in progress tells the two apart.
             let recognizers = (mapView.subviews.first?.gestureRecognizers ?? []) + (mapView.gestureRecognizers ?? [])
             let dragging = recognizers.contains { $0.state == .began || $0.state == .changed }
-            if dragging && parent.follow {
-                parent.follow = false
+            if dragging {
+                holdingOpeningView = false
+                if parent.follow {
+                    parent.follow = false
+                }
             }
         }
 
