@@ -9,8 +9,9 @@ import TerrainCore
 /// making good. Wider than tall because it is a side-on slice: distance runs
 /// a long way, height does not.
 ///
-/// Not there at all until there is ground to draw and a height to measure it
-/// from, as on the desktop.
+/// Up whenever it is switched on, like the terrain radar beside it -- the
+/// desktop hides it until there is ground to draw -- and saying so until
+/// there is ground and a height to measure it from.
 struct AglProfileView: View {
     let radar: TerrainRadar
     var width: CGFloat = 300
@@ -23,15 +24,17 @@ struct AglProfileView: View {
     var body: some View {
         // Read so the panel redraws as the track flown grows.
         let _ = radar.flownVersion
-        if radar.showsAgl, let profile = radar.profile, let amsl = radar.altMslM,
-           let picture = AglPicture(
-               profile: profile,
-               amslM: Double(amsl),
-               slope: radar.aglSlope,
-               track: radar.flownTrack(within: profile.behindM)
-           ) {
-            Canvas { context, size in
-                AglPainter(picture: picture).draw(&context, size: size)
+        if radar.showsAgl {
+            ZStack {
+                if let picture {
+                    Canvas { context, size in
+                        AglPainter(picture: picture).draw(&context, size: size)
+                    }
+                } else {
+                    Text("Live AGL - no data")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color(hex: 0x888888))
+                }
             }
             .frame(width: width, height: Self.height(for: width))
             .background(Color(hex: 0x1E1E1E, opacity: 0.75))
@@ -41,6 +44,17 @@ struct AglProfileView: View {
             .contentShape(RoundedRectangle(cornerRadius: 8))
             .onTapGesture {}
         }
+    }
+
+    /// What there is to draw, or nil before there is ground and a height.
+    private var picture: AglPicture? {
+        guard let profile = radar.profile, let amsl = radar.altMslM else { return nil }
+        return AglPicture(
+            profile: profile,
+            amslM: Double(amsl),
+            slope: radar.aglSlope,
+            track: radar.flownTrack(within: profile.behindM)
+        )
     }
 }
 

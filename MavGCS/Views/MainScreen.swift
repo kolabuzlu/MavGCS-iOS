@@ -127,7 +127,7 @@ struct MainScreen: View {
         // chosen to fill exactly this height -- so a hair of slack keeps the
         // rounding of the arithmetic from deciding whether it shows.
         let aglFits = aglTop >= compassTop + sizes.compass + 6 - 0.5
-        let aglUp = aglFits && model.terrain.aglShown
+        let aglUp = aglFits && model.terrain.showsAgl
         return ZStack(alignment: .topLeading) {
             VehicleMapView(
                 vehicle: model.vehicle,
@@ -204,7 +204,7 @@ struct MainScreen: View {
 
             // Live AGL, the ground along the track, in the desktop's
             // proportions and flush with the LAT / LON box's right-hand edge.
-            // It comes and goes with the ground to draw, as on the desktop.
+            // Up whenever it is switched on, with or without ground to draw.
             if aglFits {
                 AglProfileView(radar: model.terrain, width: sizes.aglWidth)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -534,8 +534,9 @@ private struct MapReadouts: View {
                 }
                 .readoutBox()
             }
+            // Not disabled without a position, which would dim the box: the
+            // tap simply does nothing until there is somewhere to go.
             .buttonStyle(.plain)
-            .disabled(vehicle.lat == nil || vehicle.lon == nil)
             .accessibilityLabel("Directions to the aircraft in Google Maps")
         }
         .font(.system(size: 11))

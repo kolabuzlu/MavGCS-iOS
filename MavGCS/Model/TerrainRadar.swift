@@ -61,10 +61,6 @@ final class TerrainRadar {
         didSet { if showsAgl, !oldValue { sampled = nil } }
     }
 
-    /// Whether the Live AGL panel is up: switched on, with some ground to
-    /// draw and a height to measure it from.
-    var aglShown: Bool { showsAgl && profile?.hasData == true && altMslM != nil }
-
     /// How much clearance the red to green ramp spans.
     var scaleM = TerrainClearance.defaultScaleM
     /// Clearance from where the present gradient will put the aircraft,
