@@ -80,12 +80,16 @@ struct MainScreen: View {
         .persistentSystemOverlays(.hidden)
     }
 
-    /// Where the map's bottom controls stop: just clear of the strip iOS keeps
-    /// for its home bar. Down inside it they sat under the bar itself, and a
-    /// press there could be taken over by the swipe home -- which is how the
-    /// ARM button came to be left reading FORCE….
+    /// Where the map's bottom controls stop: above a strip along the foot of
+    /// the screen that holds the credits. On a phone with a home bar it is
+    /// the strip iOS keeps for the bar -- down inside it the buttons sat
+    /// under the bar itself, and a press there could be taken over by the
+    /// swipe home, which is how the ARM button came to be left reading
+    /// FORCE…. On one with a Home button, a strip of the same use is kept
+    /// for the credits all the same.
     private var bottomPadding: CGFloat {
-        edges.insets.bottom > 0 ? edges.insets.bottom + 3 : 6
+        if edges.insets.bottom > 0 { return edges.insets.bottom + 3 }
+        return edges.measured ? Self.creditHeight + 4 : 6
     }
 
     /// Whether there is a home-bar strip under the buttons for the credits.
@@ -163,13 +167,11 @@ struct MainScreen: View {
 
             // The credits along the foot of the map: ESRI's on the left,
             // which its terms ask to be shown with the imagery, and the
-            // author's on the right. In the strip under the buttons that iOS
-            // keeps for its home bar -- no use for a control, since a press
-            // there can be taken for the swipe home, but room for a line of
-            // small print. On a phone without that strip, just above the
-            // readouts instead, with MapKit's Legal link lifted over ESRI's:
-            // beside it, the two would collide wherever the word for "Legal"
-            // runs long, and MapKit does not say how long.
+            // author's on the right, in the strip under the buttons -- no use
+            // for a control where it is the home bar's, but room for a line
+            // of small print. Only for the moment before the screen has been
+            // read are they above the readouts instead, with MapKit's Legal
+            // link lifted over ESRI's.
             HStack(spacing: 6) {
                 credit(EsriTileOverlay.credit)
                 Spacer(minLength: 0)

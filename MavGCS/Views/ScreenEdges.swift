@@ -12,11 +12,20 @@ struct ScreenEdges: Equatable {
     var insets = UIEdgeInsets.zero
     /// The top of the phone, where the island or notch is, is on the left.
     var islandOnLeft = false
+    /// The screen has been read. Until it has, the layout is the one the app
+    /// has always opened with, edges or none: the map settles its opening
+    /// view in that first moment, and a different one moves it.
+    var measured = false
 
-    /// Enough to keep a panel's corner out of the display's rounded one.
+    /// The strip down the left-hand edge: enough to keep a panel's corner out
+    /// of the display's rounded one, and where the battery gauge stands.
+    /// Kept on square-cornered screens too, for the gauge.
     static let cornerMargin: CGFloat = 16
 
-    var leading: CGFloat { islandOnLeft ? max(insets.left, 6) : min(insets.left, Self.cornerMargin) }
+    var leading: CGFloat {
+        if islandOnLeft { return max(insets.left, 6) }
+        return measured ? Self.cornerMargin : min(insets.left, Self.cornerMargin)
+    }
     var trailing: CGFloat { islandOnLeft ? min(insets.right, Self.cornerMargin + 8) : max(insets.right, 6) }
 }
 
@@ -64,7 +73,8 @@ struct ScreenEdgesReader: UIViewRepresentable {
                 insets: window.safeAreaInsets,
                 // Home button on the right, in the old terms, puts the top of
                 // the phone on the left.
-                islandOnLeft: scene.effectiveGeometry.interfaceOrientation == .landscapeRight
+                islandOnLeft: scene.effectiveGeometry.interfaceOrientation == .landscapeRight,
+                measured: true
             )
             guard edges != last else { return }
             last = edges
