@@ -75,9 +75,27 @@ struct MainScreen: View {
         edges.insets.bottom > 0 ? edges.insets.bottom + 3 : 6
     }
 
-    /// Whether there is a home-bar strip under the buttons for ESRI's credit.
+    /// Whether there is a home-bar strip under the buttons for the credits.
     private var creditInStrip: Bool {
         bottomPadding >= Self.creditHeight + 2
+    }
+
+    /// How much the credits take from above the readouts: nothing when they
+    /// have the home-bar strip to themselves.
+    private var creditRowLift: CGFloat {
+        creditInStrip ? 0 : Self.creditHeight + 4
+    }
+
+    /// A line of small print over the map, in the style ESRI's credit set.
+    private func credit(_ text: String) -> some View {
+        Text(verbatim: text)
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(.white.opacity(0.85))
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            .background(Color.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 3))
     }
 
     private func mapArea(height: CGFloat) -> some View {
@@ -90,7 +108,7 @@ struct MainScreen: View {
         // something opens below. Only while it fits under the compass: with
         // a panel up there is no room left for it, and it steps aside until
         // there is.
-        let aglLift = bottomPadding + bottomStackHeight + 6
+        let aglLift = bottomPadding + bottomStackHeight + 6 + creditRowLift
         let aglTop = height - aglLift - AglProfileView.height(for: sizes.aglWidth)
         // At rest the two sides are equal by construction -- the sizes are
         // chosen to fill exactly this height -- so a hair of slack keeps the
@@ -130,30 +148,28 @@ struct MainScreen: View {
             )
             .ignoresSafeArea()
 
-            // ESRI's attribution, which its terms ask to be shown with the
-            // imagery: bottom left, in the strip under the buttons that iOS
+            // The credits along the foot of the map: ESRI's on the left,
+            // which its terms ask to be shown with the imagery, and the
+            // author's on the right. In the strip under the buttons that iOS
             // keeps for its home bar -- no use for a control, since a press
             // there can be taken for the swipe home, but room for a line of
             // small print. On a phone without that strip, just above the
-            // readouts instead, with MapKit's Legal link lifted over it:
+            // readouts instead, with MapKit's Legal link lifted over ESRI's:
             // beside it, the two would collide wherever the word for "Legal"
             // runs long, and MapKit does not say how long.
-            Text(EsriTileOverlay.credit)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(.white.opacity(0.85))
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 1)
-                .background(Color.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 3))
-                .frame(height: Self.creditHeight)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                .padding(.leading, 6)
-                .padding(.trailing, creditInStrip ? edges.trailing : edges.trailing + (aglUp ? sizes.aglWidth + 6 : 0))
-                .padding(.bottom, creditInStrip
-                    ? max(1, (bottomPadding - Self.creditHeight) / 2)
-                    : bottomPadding + bottomStackHeight + 4)
-                .allowsHitTesting(false)
+            HStack(spacing: 6) {
+                credit(EsriTileOverlay.credit)
+                Spacer(minLength: 0)
+                credit("Created by Derin Hakan Karakurt")
+            }
+            .frame(height: Self.creditHeight)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .padding(.leading, 6)
+            .padding(.trailing, edges.trailing)
+            .padding(.bottom, creditInStrip
+                ? max(1, (bottomPadding - Self.creditHeight) / 2)
+                : bottomPadding + bottomStackHeight + 4)
+            .allowsHitTesting(false)
 
             // Under the map buttons, at the right-hand end of their row. Outside
             // the controls' own stack, and beneath it, so a panel slid up from
@@ -239,7 +255,7 @@ struct MainScreen: View {
     private static let restingStackHeight: CGFloat = MapReadouts.height + 6 + ActionBar.height
 
     private func instrumentSizes(height: CGFloat) -> InstrumentSizes {
-        let room = height - Self.radarTop - bottomPadding - Self.restingStackHeight - 6 - 12
+        let room = height - Self.radarTop - bottomPadding - Self.restingStackHeight - 6 - 12 - creditRowLift
         let unit = max(room, 180) / 216
         return InstrumentSizes(radar: 76 * unit, compass: 70 * unit, aglWidth: 70 * unit * 300 / 140)
     }
@@ -491,13 +507,37 @@ private struct MapReadouts: View {
 
             Spacer(minLength: 0)
 
-            HStack(spacing: 14) {
-                coordinate("LAT", vehicle.lat)
-                coordinate("LON", vehicle.lon)
+            // A tap asks Google Maps for directions to the aircraft, for
+            // going to fetch it.
+            Button(action: navigate) {
+                HStack(spacing: 14) {
+                    coordinate("LAT", vehicle.lat)
+                    coordinate("LON", vehicle.lon)
+                }
+                .readoutBox()
             }
-            .readoutBox()
+            .buttonStyle(.plain)
+            .disabled(vehicle.lat == nil || vehicle.lon == nil)
+            .accessibilityLabel("Directions to the aircraft in Google Maps")
         }
         .font(.system(size: 11))
+    }
+
+    /// Directions to where the aircraft is: in the Google Maps app when it
+    /// is installed, otherwise on Google's website, which offers the app.
+    private func navigate() {
+        guard let lat = vehicle.lat, let lon = vehicle.lon else { return }
+        // A point for a decimal mark whatever the phone's language, which
+        // String(format:) gives without being asked.
+        let place = String(format: "%.7f,%.7f", lat, lon)
+        guard let app = URL(string: "comgooglemaps://?daddr=\(place)&directionsmode=driving"),
+              let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(place)")
+        else { return }
+        UIApplication.shared.open(app) { opened in
+            if !opened {
+                UIApplication.shared.open(web)
+            }
+        }
     }
 
     private func coordinate(_ label: String, _ value: Double?) -> some View {
