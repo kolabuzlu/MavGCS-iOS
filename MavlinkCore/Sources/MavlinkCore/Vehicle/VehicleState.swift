@@ -94,6 +94,11 @@ public struct VehicleState: Sendable, Equatable {
     public var sensorsPresent: UInt32?
     public var sensorsHealth: UInt32?
 
+    /// The HUD's EKF and VIBE words, or nil before a report has arrived --
+    /// drawn white, the quiet state, like everywhere else MavGCS runs.
+    public var ekfTint: HealthTint?
+    public var vibeTint: HealthTint?
+
     /// The Messages panel: the vehicle's own words and the app's notes.
     public var messages: [VehicleMessage] = []
 

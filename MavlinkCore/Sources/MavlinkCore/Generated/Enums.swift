@@ -1663,3 +1663,52 @@ public enum MavSysStatusSensor {
         1073741824: "MAV_SYS_STATUS_SENSOR_PROPULSION",
     ]
 }
+
+/// Flags in EKF_STATUS message.
+public enum EkfStatusFlags {
+    /// Set if EKF's attitude estimate is good.
+    public static let attitude: UInt16 = 1
+    /// Set if EKF's horizontal velocity estimate is good.
+    public static let velocityHoriz: UInt16 = 2
+    /// Set if EKF's vertical velocity estimate is good.
+    public static let velocityVert: UInt16 = 4
+    /// Set if EKF's horizontal position (relative) estimate is good.
+    public static let posHorizRel: UInt16 = 8
+    /// Set if EKF's horizontal position (absolute) estimate is good.
+    public static let posHorizAbs: UInt16 = 16
+    /// Set if EKF's vertical position (absolute) estimate is good.
+    public static let posVertAbs: UInt16 = 32
+    /// Set if EKF's vertical position (above ground) estimate is good.
+    public static let posVertAgl: UInt16 = 64
+    /// EKF is in constant position mode and does not know it's absolute or relative
+    /// position.
+    public static let constPosMode: UInt16 = 128
+    /// Set if EKF's predicted horizontal position (relative) estimate is good.
+    public static let predPosHorizRel: UInt16 = 256
+    /// Set if EKF's predicted horizontal position (absolute) estimate is good.
+    public static let predPosHorizAbs: UInt16 = 512
+    /// Set if EKF believes the GPS input data is faulty.
+    public static let gpsGlitching: UInt16 = 32768
+    /// Set if EKF has never been healthy.
+    public static let uninitialized: UInt16 = 1024
+
+    /// The name the definitions give a value, or nil for one they do not.
+    public static func name(_ value: some BinaryInteger) -> String? {
+        names[UInt32(truncatingIfNeeded: value)]
+    }
+
+    private static let names: [UInt32: String] = [
+        1: "EKF_ATTITUDE",
+        2: "EKF_VELOCITY_HORIZ",
+        4: "EKF_VELOCITY_VERT",
+        8: "EKF_POS_HORIZ_REL",
+        16: "EKF_POS_HORIZ_ABS",
+        32: "EKF_POS_VERT_ABS",
+        64: "EKF_POS_VERT_AGL",
+        128: "EKF_CONST_POS_MODE",
+        256: "EKF_PRED_POS_HORIZ_REL",
+        512: "EKF_PRED_POS_HORIZ_ABS",
+        32768: "EKF_GPS_GLITCHING",
+        1024: "EKF_UNINITIALIZED",
+    ]
+}

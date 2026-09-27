@@ -1510,6 +1510,136 @@ public struct Rangefinder: MavlinkMessage, Equatable {
     }
 }
 
+/// EKF Status message including flags and variances.
+public struct EkfStatusReport: MavlinkMessage, Equatable {
+    public static let messageId: UInt32 = 193
+    public static let messageName = "EKF_STATUS_REPORT"
+    public static let crcExtra: UInt8 = 71
+    /// Payload length without extensions, which is all MAVLink 1 carries.
+    public static let minLength = 22
+    /// Payload length with every extension field present.
+    public static let maxLength = 26
+
+    /// Velocity variance.
+    public var velocityVariance: Float
+    /// Horizontal Position variance.
+    public var posHorizVariance: Float
+    /// Vertical Position variance.
+    public var posVertVariance: Float
+    /// Compass variance.
+    public var compassVariance: Float
+    /// Terrain Altitude variance.
+    public var terrainAltVariance: Float
+    /// Flags. Values from: EKF_STATUS_FLAGS.
+    public var flags: UInt16
+    /// Airspeed variance.
+    public var airspeedVariance: Float
+
+    public init(
+        flags: UInt16 = 0,
+        velocityVariance: Float = 0,
+        posHorizVariance: Float = 0,
+        posVertVariance: Float = 0,
+        compassVariance: Float = 0,
+        terrainAltVariance: Float = 0,
+        airspeedVariance: Float = 0
+    ) {
+        self.flags = flags
+        self.velocityVariance = velocityVariance
+        self.posHorizVariance = posHorizVariance
+        self.posVertVariance = posVertVariance
+        self.compassVariance = compassVariance
+        self.terrainAltVariance = terrainAltVariance
+        self.airspeedVariance = airspeedVariance
+    }
+
+    public init(from reader: PayloadReader) {
+        velocityVariance = reader.f32(at: 0)
+        posHorizVariance = reader.f32(at: 4)
+        posVertVariance = reader.f32(at: 8)
+        compassVariance = reader.f32(at: 12)
+        terrainAltVariance = reader.f32(at: 16)
+        flags = reader.u16(at: 20)
+        airspeedVariance = reader.f32(at: 22)
+    }
+
+    public func write(to writer: inout PayloadWriter) {
+        writer.f32(self.velocityVariance, at: 0)
+        writer.f32(self.posHorizVariance, at: 4)
+        writer.f32(self.posVertVariance, at: 8)
+        writer.f32(self.compassVariance, at: 12)
+        writer.f32(self.terrainAltVariance, at: 16)
+        writer.u16(self.flags, at: 20)
+        writer.f32(self.airspeedVariance, at: 22)
+    }
+}
+
+/// Vibration levels and accelerometer clipping
+public struct Vibration: MavlinkMessage, Equatable {
+    public static let messageId: UInt32 = 241
+    public static let messageName = "VIBRATION"
+    public static let crcExtra: UInt8 = 90
+    /// Payload length without extensions, which is all MAVLink 1 carries.
+    public static let minLength = 32
+    /// Payload length with every extension field present.
+    public static let maxLength = 32
+
+    /// Timestamp (UNIX Epoch time or time since system boot). The receiving end can
+    /// infer timestamp format (since 1.1.1970 or since system boot) by checking for
+    /// the magnitude of the number. Units: us.
+    public var timeUsec: UInt64
+    /// Vibration levels on X-axis
+    public var vibrationX: Float
+    /// Vibration levels on Y-axis
+    public var vibrationY: Float
+    /// Vibration levels on Z-axis
+    public var vibrationZ: Float
+    /// first accelerometer clipping count
+    public var clipping0: UInt32
+    /// second accelerometer clipping count
+    public var clipping1: UInt32
+    /// third accelerometer clipping count
+    public var clipping2: UInt32
+
+    public init(
+        timeUsec: UInt64 = 0,
+        vibrationX: Float = 0,
+        vibrationY: Float = 0,
+        vibrationZ: Float = 0,
+        clipping0: UInt32 = 0,
+        clipping1: UInt32 = 0,
+        clipping2: UInt32 = 0
+    ) {
+        self.timeUsec = timeUsec
+        self.vibrationX = vibrationX
+        self.vibrationY = vibrationY
+        self.vibrationZ = vibrationZ
+        self.clipping0 = clipping0
+        self.clipping1 = clipping1
+        self.clipping2 = clipping2
+    }
+
+    public init(from reader: PayloadReader) {
+        timeUsec = reader.u64(at: 0)
+        vibrationX = reader.f32(at: 8)
+        vibrationY = reader.f32(at: 12)
+        vibrationZ = reader.f32(at: 16)
+        clipping0 = reader.u32(at: 20)
+        clipping1 = reader.u32(at: 24)
+        clipping2 = reader.u32(at: 28)
+    }
+
+    public func write(to writer: inout PayloadWriter) {
+        writer.u64(self.timeUsec, at: 0)
+        writer.f32(self.vibrationX, at: 8)
+        writer.f32(self.vibrationY, at: 12)
+        writer.f32(self.vibrationZ, at: 16)
+        writer.u32(self.clipping0, at: 20)
+        writer.u32(self.clipping1, at: 24)
+        writer.u32(self.clipping2, at: 28)
+    }
+}
+
 /// Send a command with up to seven parameters to the MAV. The command
 /// microservice is documented at https://mavlink.io/en/services/command.html
 public struct CommandLong: MavlinkMessage, Equatable {
@@ -1840,6 +1970,8 @@ public enum MavlinkRegistry {
         132: DistanceSensor.self,
         168: Wind.self,
         173: Rangefinder.self,
+        193: EkfStatusReport.self,
+        241: Vibration.self,
         76: CommandLong.self,
         75: CommandInt.self,
         23: ParamSet.self,

@@ -25,13 +25,89 @@ struct ClientTests {
         #expect(intervals[Attitude.messageId] == 200_000)
         #expect(intervals[GlobalPositionInt.messageId] == 500_000)
         #expect(intervals[Wind.messageId] == 1_000_000)
-        #expect(intervals[193] == -1) // EKF_STATUS_REPORT, unread here
+        #expect(intervals[EkfStatusReport.messageId] == 2_000_000) // the HUD's EKF word, at the desktop's rate
+        #expect(intervals[Vibration.messageId] == 2_000_000)
+        #expect(intervals[36] == -1) // SERVO_OUTPUT_RAW, never read
         #expect(intervals[11030] == -1) // ESC telemetry, by number
 
         // Only once per connection.
         h.clearSent()
         h.receive(Harness.planeHeartbeat())
         #expect(h.sentMessages().isEmpty)
+    }
+
+    @Test func ratesChangedInFlightAreSentAtOnceAndOnlyThoseTwo() {
+        let h = Harness()
+        h.receive(Harness.planeHeartbeat())
+        h.clearSent()
+        h.client.setStreamRates(StreamRates(attitudeHz: 2, positionHz: 1))
+        h.client.flush()
+        let sent = h.sentCommands()
+        #expect(sent.count == 2)
+        #expect(sent.allSatisfy { $0.command == MavCmd.setMessageInterval })
+        let intervals = Dictionary(sent.map { (UInt32($0.param1), $0.param2) }, uniquingKeysWith: { $1 })
+        #expect(intervals[Attitude.messageId] == 500_000)
+        #expect(intervals[GlobalPositionInt.messageId] == 1_000_000)
+    }
+
+    @Test func ratesChosenBeforeContactAreTheOnesFirstAskedFor() {
+        let h = Harness()
+        h.client.setStreamRates(StreamRates(attitudeHz: 3, positionHz: 5))
+        h.client.flush()
+        #expect(h.sentCommands().isEmpty, "nothing to ask before a vehicle is heard")
+        h.receive(Harness.planeHeartbeat())
+        let intervals = Dictionary(
+            h.sentCommands().filter { $0.command == MavCmd.setMessageInterval }.map { (UInt32($0.param1), $0.param2) },
+            uniquingKeysWith: { $1 }
+        )
+        #expect(intervals[Attitude.messageId] == 333_333)
+        #expect(intervals[GlobalPositionInt.messageId] == 200_000)
+    }
+
+    @Test func fullTelemetryPutsEveryRateBackToTheVehiclesOwn() {
+        let h = Harness()
+        h.receive(Harness.planeHeartbeat())
+        let reduced = h.sentCommands().filter { $0.command == MavCmd.setMessageInterval }
+        h.clearSent()
+
+        h.client.setStreamRates(StreamRates(attitudeHz: 5, positionHz: 2, full: true))
+        h.client.flush()
+        let full = h.sentCommands().filter { $0.command == MavCmd.setMessageInterval }
+        // Every message the reduced set touched, each put back to the
+        // vehicle's own rate: zero, not -1 for off. Not asking would leave
+        // ArduPilot on the reduced set, which it keeps per ground station.
+        #expect(Set(full.map(\.param1)) == Set(reduced.map(\.param1)))
+        #expect(full.allSatisfy { $0.param2 == 0 })
+
+        // The two rates mean nothing while full is on.
+        h.clearSent()
+        h.client.setStreamRates(StreamRates(attitudeHz: 1, positionHz: 1, full: true))
+        h.client.flush()
+        #expect(h.sentCommands().isEmpty)
+
+        // And leaving it asks for the whole reduced set again.
+        h.client.setStreamRates(StreamRates(attitudeHz: 3, positionHz: 1, full: false))
+        h.client.flush()
+        let back = Dictionary(
+            h.sentCommands().filter { $0.command == MavCmd.setMessageInterval }.map { (UInt32($0.param1), $0.param2) },
+            uniquingKeysWith: { $1 }
+        )
+        #expect(back.count == full.count)
+        #expect(back[Attitude.messageId] == 333_333)
+        #expect(back[GlobalPositionInt.messageId] == 1_000_000)
+        #expect(back[36] == -1)
+    }
+
+    @Test func fullTelemetryFromTheStartAsksForNothingToBeCut() {
+        let h = Harness()
+        h.client.setStreamRates(StreamRates(full: true))
+        h.client.flush()
+        h.receive(Harness.planeHeartbeat())
+        let sent = h.sentMessages()
+        #expect(sent.first is RequestDataStream)
+        let intervals = sent.compactMap { $0 as? CommandLong }.filter { $0.command == MavCmd.setMessageInterval }
+        #expect(!intervals.isEmpty)
+        #expect(intervals.allSatisfy { $0.param2 == 0 })
     }
 
     @Test func px4IsNotAskedForWind() {

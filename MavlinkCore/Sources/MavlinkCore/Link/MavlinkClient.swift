@@ -59,6 +59,8 @@ public final class MavlinkClient: @unchecked Sendable {
         (Wind.messageId, 1),               // the wind arrow
         (TerrainReport.messageId, 1),      // terrain altitude
         (BatteryStatus.messageId, 0.5),
+        (EkfStatusReport.messageId, 0.5),  // the HUD's EKF word
+        (Vibration.messageId, 0.5),        // the HUD's VIBE word
         (ScaledPressure.messageId, 0.5),   // QNH
         (MissionCurrent.messageId, 1),     // which waypoint is being flown
         // The only thing either firmware will say about the radio. Neither
@@ -107,10 +109,6 @@ public final class MavlinkClient: @unchecked Sendable {
         11030, // ESC_TELEMETRY_1_TO_4, 4 Hz and 220 B/s of it
         295,   // AIRSPEED, whose figure VFR_HUD already carries
         143,   // SCALED_PRESSURE3, a third barometer
-        // Read by the Android build's Systems panel, which this app does not
-        // have yet. Until it does they are bandwidth for nothing.
-        193,   // EKF_STATUS_REPORT
-        241,   // VIBRATION
     ]
 
     /// The requests the app makes for itself, not for the pilot.
@@ -212,6 +210,8 @@ public final class MavlinkClient: @unchecked Sendable {
 
     public func connect(_ config: LinkConfig, rates: StreamRates = StreamRates()) {
         queue.async { [self] in
+            // A link being replaced is a link being closed.
+            restoreDefaultRates()
             closeTransport()
             session += 1
             let session = session
@@ -251,6 +251,7 @@ public final class MavlinkClient: @unchecked Sendable {
 
     public func disconnect() {
         queue.async { [self] in
+            restoreDefaultRates()
             closeTransport()
             session += 1
             // Forget who the vehicle was. The stream rates are applied once,
@@ -306,6 +307,27 @@ public final class MavlinkClient: @unchecked Sendable {
             )
             state.modePending = button.mode
             schedulePublish()
+        }
+    }
+
+    /// Ask for different attitude and position rates: on the link as it
+    /// stands, straight away, and on every connection after.
+    ///
+    /// Only the two messages these rates govern are asked for again. The
+    /// rest were set on first contact and have not changed, and on a slow
+    /// uplink -- the kind these settings exist for -- the full list is
+    /// thirty-odd commands and seconds of airtime spent on two numbers.
+    public func setStreamRates(_ rates: StreamRates) {
+        queue.async { [self] in
+            let wasFull = self.rates.full
+            self.rates = rates
+            guard target != nil else { return }
+            if rates.full != wasFull {
+                applyStreamRates(firmware: state.firmware)
+            } else if !rates.full {
+                sendCommand(MavCmd.setMessageInterval, param1: Float(Attitude.messageId), param2: interval(rates.attitudeHz))
+                sendCommand(MavCmd.setMessageInterval, param1: Float(GlobalPositionInt.messageId), param2: interval(rates.positionHz))
+            }
         }
     }
 
@@ -574,8 +596,30 @@ public final class MavlinkClient: @unchecked Sendable {
     /// read .unknown every time, on exactly the connection the test was
     /// written for.
     private func applyStreamRates(firmware: Firmware) {
+        sendIntervals(allDefault: rates.full, firmware: firmware)
+    }
+
+    /// Hand the vehicle back as it was found, as the desktop does when its
+    /// link ends.
+    ///
+    /// Stream rates live in the autopilot, not here, so anything asked for
+    /// outlives the link: disconnect, and the vehicle carries on sending the
+    /// reduced set to whatever connects next, with nothing to explain why.
+    /// Every message this app touched goes back to the vehicle's own rate.
+    ///
+    /// Nothing to undo with full telemetry on, and nothing to say it to
+    /// before a vehicle has been heard. Best effort: on a link that has
+    /// already dropped, this goes nowhere, and that is fine.
+    private func restoreDefaultRates() {
+        guard transport != nil, target != nil, !rates.full else { return }
+        sendIntervals(allDefault: true, firmware: state.firmware)
+    }
+
+    /// One SET_MESSAGE_INTERVAL for every message the app manages: at the
+    /// chosen rates, or all at the vehicle's own.
+    private func sendIntervals(allDefault: Bool, firmware: Firmware) {
         var intervals: [(UInt32, Float)] = []
-        if rates.full {
+        if allDefault {
             // Everything at the vehicle's own rate. Zero means "your
             // default", a different thing from -1 for off.
             for (id, _) in Self.supportingRates { intervals.append((id, 0)) }
@@ -818,6 +862,14 @@ public final class MavlinkClient: @unchecked Sendable {
 
         case let m as TerrainReport:
             state.terrainAltM = m.terrainHeight
+
+        case let m as EkfStatusReport:
+            // Judged against the fix type as it stands when the report
+            // lands, as the desktop does.
+            state.ekfTint = HealthVerdict.ekf(m, gpsFixType: state.gpsFixType)
+
+        case let m as Vibration:
+            state.vibeTint = HealthVerdict.vibration(m)
 
         case let m as Statustext:
             appendVehicleMessage(m)

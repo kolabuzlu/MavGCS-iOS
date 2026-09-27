@@ -825,6 +825,79 @@
    "v1": "fe0800072aad00509ac400288ec4c07d"
   },
   {
+   "name": "EKF_STATUS_REPORT",
+   "id": 193,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "velocity_variance": "-1234.5",
+    "pos_horiz_variance": "-1137.25",
+    "pos_vert_variance": "-1040.0",
+    "compass_variance": "-942.75",
+    "terrain_alt_variance": "-845.5",
+    "flags": "28006",
+    "airspeed_variance": "-651.0"
+   },
+   "v2": "fd1a000000072ac1000000509ac400288ec4000082c400b06bc4006053c4666d00c022c4db52",
+   "v2_signed": "fd1a010000072ac1000000509ac400288ec4000082c400b06bc4006053c4666d00c022c4e25f0315cd5b07000041a4c2bc0438",
+   "fields_trimmed": {
+    "velocity_variance": "-1234.0",
+    "pos_horiz_variance": "-1136.75",
+    "pos_vert_variance": "-1039.5",
+    "compass_variance": "0.0",
+    "terrain_alt_variance": "0.0",
+    "flags": "0",
+    "airspeed_variance": "0.0"
+   },
+   "v2_trimmed": "fd0c000000072ac1000000409ac400188ec400f081c4ccb6",
+   "fields_v1": {
+    "flags": "28006",
+    "velocity_variance": "-1234.5",
+    "pos_horiz_variance": "-1137.25",
+    "pos_vert_variance": "-1040.0",
+    "compass_variance": "-942.75",
+    "terrain_alt_variance": "-845.5"
+   },
+   "v1": "fe1600072ac100509ac400288ec4000082c400b06bc4006053c4666d1667"
+  },
+  {
+   "name": "VIBRATION",
+   "id": 241,
+   "system": 7,
+   "component": 42,
+   "fields": {
+    "time_usec": "4772465598646917137",
+    "vibration_x": "-1137.25",
+    "vibration_y": "-1040.0",
+    "vibration_z": "-942.75",
+    "clipping_0": "1784896597",
+    "clipping_1": "2071227750",
+    "clipping_2": "2357558903"
+   },
+   "v2": "fd20000000072af1000011181f262d343b4200288ec4000082c400b06bc4555c636a666d747b777e858cd52a",
+   "v2_signed": "fd20010000072af1000011181f262d343b4200288ec4000082c400b06bc4555c636a666d747b777e858c02b40315cd5b070000190f05671276",
+   "fields_trimmed": {
+    "time_usec": "6870330610951140654",
+    "vibration_x": "-1136.75",
+    "vibration_y": "-1039.5",
+    "vibration_z": "0.0",
+    "clipping_0": "0",
+    "clipping_1": "0",
+    "clipping_2": "0"
+   },
+   "v2_trimmed": "fd10000000072af100002e353c434a51585f00188ec400f081c4a90c",
+   "fields_v1": {
+    "time_usec": "4772465598646917137",
+    "vibration_x": "-1137.25",
+    "vibration_y": "-1040.0",
+    "vibration_z": "-942.75",
+    "clipping_0": "1784896597",
+    "clipping_1": "2071227750",
+    "clipping_2": "2357558903"
+   },
+   "v1": "fe2000072af111181f262d343b4200288ec4000082c400b06bc4555c636a666d747b777e858cc157"
+  },
+  {
    "name": "COMMAND_LONG",
    "id": 76,
    "system": 7,

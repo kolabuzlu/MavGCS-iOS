@@ -60,6 +60,8 @@ MESSAGES = [
     "DISTANCE_SENSOR",
     "WIND",
     "RANGEFINDER",
+    "EKF_STATUS_REPORT",
+    "VIBRATION",
     # What the app sends.
     "COMMAND_LONG",
     "COMMAND_INT",
@@ -80,6 +82,7 @@ ENUMS = [
     "MAV_PARAM_TYPE",
     "MAV_SENSOR_ORIENTATION",
     "MAV_SYS_STATUS_SENSOR",
+    "EKF_STATUS_FLAGS",
 ]
 
 SWIFT_TYPES = {
