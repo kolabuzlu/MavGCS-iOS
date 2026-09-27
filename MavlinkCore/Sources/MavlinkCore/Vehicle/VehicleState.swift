@@ -168,6 +168,9 @@ public enum UdpMode: Sendable, Equatable, Codable {
 public enum LinkType: Sendable, Equatable, Codable {
     case udp
     case tcp
+    /// The simulated aircraft built into the app, for trying it with no
+    /// drone at hand. Nothing leaves the phone.
+    case demo
 }
 
 public struct LinkConfig: Sendable, Equatable, Codable {
@@ -185,13 +188,14 @@ public struct LinkConfig: Sendable, Equatable, Codable {
 
     /// A bound port has nothing to aim at, so the address is not the
     /// pilot's to set.
-    public var hostEditable: Bool { type == .tcp || udpMode == .connect }
+    public var hostEditable: Bool { type == .tcp || (type == .udp && udpMode == .connect) }
 
     public var description: String {
         switch (type, udpMode) {
         case (.udp, .listen): return "UDP port \(port)"
         case (.udp, .connect): return "UDP \(host):\(port)"
         case (.tcp, _): return "TCP \(host):\(port)"
+        case (.demo, _): return "Demo flight"
         }
     }
 }

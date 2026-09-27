@@ -51,8 +51,25 @@ struct ConnectionSheet: View {
             Picker("Link", selection: $model.form.type) {
                 Text("UDP").tag(LinkType.udp)
                 Text("TCP").tag(LinkType.tcp)
+                Text("Demo").tag(LinkType.demo)
             }
             .pickerStyle(.segmented)
+            // The demo has nothing to address: the aircraft is inside the app.
+            if model.form.type != .demo {
+                addressRows
+            }
+        } header: {
+            Text("Connection")
+        } footer: {
+            Text(explanation)
+        }
+        .disabled(model.vehicle.linkOpen)
+    }
+
+    @ViewBuilder
+    private var addressRows: some View {
+        @Bindable var model = model
+        Group {
             if model.form.type == .udp {
                 Picker("UDP", selection: $model.form.udpMode) {
                     Text("Listen").tag(UdpMode.listen)
@@ -81,12 +98,7 @@ struct ConnectionSheet: View {
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
             }
-        } header: {
-            Text("Connection")
-        } footer: {
-            Text(explanation)
         }
-        .disabled(model.vehicle.linkOpen)
     }
 
     private var connectSection: some View {
@@ -169,6 +181,8 @@ struct ConnectionSheet: View {
             return "Speaks first, then listens for the answer. For WiFi bridges that wait to hear from the ground station, such as mLRS (192.168.4.55, port 14550)."
         case (.tcp, _):
             return "Connects to a TCP server, such as a simulator on port 5760."
+        case (.demo, _):
+            return "A simulated aircraft flying over Ankara, built into the app, for trying MavGCS with no drone at hand. It answers the mode buttons, arming, Fly Here and the guided controls as a real ArduPlane would. Nothing real is flying, and nothing leaves this phone."
         }
     }
 }

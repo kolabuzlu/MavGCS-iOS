@@ -372,6 +372,14 @@ private struct LinkChip: View {
         .accessibilityLabel("Connection")
     }
 
+    private static func kind(_ type: LinkType) -> String {
+        switch type {
+        case .udp: "UDP"
+        case .tcp: "TCP"
+        case .demo: "DEMO"
+        }
+    }
+
     private var dotColor: Color {
         if !vehicle.linkOpen { return Palette.onSurfaceVariant.opacity(0.6) }
         if vehicle.linkUp { return Palette.green }
@@ -392,7 +400,9 @@ private struct LinkChip: View {
             Text("\(config.description) · waiting")
         } else {
             HStack(spacing: 0) {
-                Text(config.type == .tcp ? "TCP · " : "UDP · ")
+                // DEMO in so many words: a simulated aircraft must never be
+                // mistaken for one in the air.
+                Text(Self.kind(config.type) + " · ")
                 Text(verbatim: "100.0%")
                     .hidden()
                     .overlay(alignment: .leading) {

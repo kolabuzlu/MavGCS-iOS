@@ -182,7 +182,7 @@ struct ConnectionForm: Codable, Equatable {
 
     /// A bound port has nothing to aim at, so the address is not the
     /// pilot's to set.
-    var hostEditable: Bool { type == .tcp || udpMode == .connect }
+    var hostEditable: Bool { type == .tcp || (type == .udp && udpMode == .connect) }
 
     var config: LinkConfig {
         LinkConfig(

@@ -126,6 +126,9 @@ final class SocketTransport: Transport, @unchecked Sendable {
                 offset += sent
             }
             return .sent
+        case .demo:
+            // Never made for the demo, which has a transport of its own.
+            return .noPeer
         }
     }
 

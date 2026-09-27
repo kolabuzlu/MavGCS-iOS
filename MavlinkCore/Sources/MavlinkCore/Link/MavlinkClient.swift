@@ -185,7 +185,9 @@ public final class MavlinkClient: @unchecked Sendable {
     public convenience init() {
         self.init(
             clock: { ProcessInfo.processInfo.systemUptime },
-            transport: { SocketTransport(config: $0) },
+            transport: { config -> any Transport in
+                config.type == .demo ? DemoTransport() : SocketTransport(config: config)
+            },
             runsTimer: true
         )
     }
